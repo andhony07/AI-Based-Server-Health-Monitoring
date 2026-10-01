@@ -1,0 +1,17 @@
+# Core System Monitoring & Metrics Collection
+psutil>=5.9.0
+
+# Machine Learning & Scientific Computing (Prepared for subsequent phases)
+scikit-learn>=1.4.0
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Interactive Dashboard & Visualizations (Prepared for subsequent phases)
+streamlit>=1.30.0
+plotly>=5.18.0
+
+# Configuration & Environment Management
+python-dotenv>=1.0.0
+
+# Testing Framework
+pytest>=8.0.0
