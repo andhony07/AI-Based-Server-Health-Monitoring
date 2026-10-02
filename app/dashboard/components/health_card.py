@@ -51,28 +51,26 @@ def render_health_and_risk(
         )
         st.plotly_chart(fig_anomaly, use_container_width=True)
 
-    with col_summary:
-        st.markdown(
-            f"""
-            <div style='background-color:{badge["bg"]}; border-left: 5px solid {badge["color"]}; padding: 16px; border-radius: 6px; margin-top: 20px;'>
-                <div style='font-size: 13px; color: #4B5563; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;'>
-                    Failure Risk Assessment
-                </div>
-                <div style='font-size: 26px; font-weight: 800; color: {badge["color"]}; margin-top: 4px;'>
-                    {badge["icon"]} {badge["label"]}
-                </div>
-                <p style='color: #374151; font-size: 13px; margin-top: 8px; line-height: 1.4;'>
-                    {badge["description"]}
-                </p>
-                <div style='border-top: 1px solid rgba(0,0,0,0.08); padding-top: 8px; margin-top: 8px; font-size: 12px; color: #4B5563;'>
-                    <div><b>Evaluated By:</b> {prediction.model_name} (v{prediction.model_version})</div>
-                    <div><b>Evaluation Time:</b> {format_timestamp(prediction.timestamp)}</div>
-                    <div><b>Decision Boundary:</b> {'Outlier Triggered (Score > 0.50)' if prediction.is_anomaly else 'Nominal Cluster (Score <= 0.50)'}</div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        decision_boundary = "Outlier Triggered (Score &gt; 0.50)" if prediction.is_anomaly else "Nominal Cluster (Score &le; 0.50)"
+        summary_html = (
+            f"<div style='background-color:{badge['bg']}; border-left: 5px solid {badge['color']}; padding: 16px; border-radius: 6px; margin-top: 20px; box-sizing:border-box;'>"
+            f"<div style='font-size: 13px; color: #4B5563; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;'>"
+            f"Failure Risk Assessment"
+            f"</div>"
+            f"<div style='font-size: 26px; font-weight: 800; color: {badge['color']}; margin-top: 4px;'>"
+            f"{badge['icon']} {badge['label']}"
+            f"</div>"
+            f"<p style='color: #374151; font-size: 13px; margin-top: 8px; line-height: 1.4;'>"
+            f"{badge['description']}"
+            f"</p>"
+            f"<div style='border-top: 1px solid rgba(0,0,0,0.08); padding-top: 8px; margin-top: 8px; font-size: 12px; color: #4B5563;'>"
+            f"<div><b>Evaluated By:</b> {prediction.model_name} (v{prediction.model_version})</div>"
+            f"<div><b>Evaluation Time:</b> {format_timestamp(prediction.timestamp)}</div>"
+            f"<div><b>Decision Boundary:</b> {decision_boundary}</div>"
+            f"</div>"
+            f"</div>"
         )
+        st.markdown(summary_html, unsafe_allow_html=True)
 
     # Warnings / Deductions breakdown if present
     if prediction.warnings:

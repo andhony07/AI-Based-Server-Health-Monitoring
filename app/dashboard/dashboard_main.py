@@ -169,29 +169,27 @@ def main() -> None:
             if latest_pred:
                 badge = get_risk_badge(latest_pred.risk_category)
                 health_val = f"{latest_pred.health_score:.1f}/100" if latest_pred.health_score is not None else "N/A"
-                st.markdown(
-                    f"""
-                    <div style='background-color:#F8FAFC; border:1px solid #E2E8F0; padding:18px; border-radius:8px;'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
-                            <span style='font-size:14px; font-weight:600; color:#475569;'>Composite Health Score:</span>
-                            <span style='font-size:24px; font-weight:800; color:{badge["color"]};'>{health_val}</span>
-                        </div>
-                        <div style='display:flex; justify-content:space-between; align-items:center; margin-top:12px;'>
-                            <span style='font-size:14px; font-weight:600; color:#475569;'>Operational Risk Tier:</span>
-                            <span style='font-size:16px; font-weight:700; color:{badge["color"]};'>{badge["icon"]} {badge["label"]}</span>
-                        </div>
-                        <div style='display:flex; justify-content:space-between; align-items:center; margin-top:12px;'>
-                            <span style='font-size:14px; font-weight:600; color:#475569;'>Anomaly Probability:</span>
-                            <span style='font-size:16px; font-weight:700; color:#334155;'>{latest_pred.anomaly_score:.4f}</span>
-                        </div>
-                        <hr style='margin:12px 0; border-color:#E2E8F0;'>
-                        <p style='font-size:12px; color:#64748B; margin:0;'>
-                            {badge["description"]}
-                        </p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                overview_card_html = (
+                    f"<div style='background-color:#F8FAFC; border:1px solid #E2E8F0; padding:18px; border-radius:8px; box-sizing:border-box;'>"
+                    f"<div style='display:flex; justify-content:space-between; align-items:center;'>"
+                    f"<span style='font-size:14px; font-weight:600; color:#475569;'>Composite Health Score:</span>"
+                    f"<span style='font-size:24px; font-weight:800; color:{badge['color']};'>{health_val}</span>"
+                    f"</div>"
+                    f"<div style='display:flex; justify-content:space-between; align-items:center; margin-top:12px;'>"
+                    f"<span style='font-size:14px; font-weight:600; color:#475569;'>Operational Risk Tier:</span>"
+                    f"<span style='font-size:16px; font-weight:700; color:{badge['color']};'>{badge['icon']} {badge['label']}</span>"
+                    f"</div>"
+                    f"<div style='display:flex; justify-content:space-between; align-items:center; margin-top:12px;'>"
+                    f"<span style='font-size:14px; font-weight:600; color:#475569;'>Anomaly Probability:</span>"
+                    f"<span style='font-size:16px; font-weight:700; color:#334155;'>{latest_pred.anomaly_score:.4f}</span>"
+                    f"</div>"
+                    f"<hr style='margin:12px 0; border:none; border-top:1px solid #E2E8F0;'>"
+                    f"<p style='font-size:12px; color:#64748B; margin:0; line-height:1.4;'>"
+                    f"{badge['description']}"
+                    f"</p>"
+                    f"</div>"
                 )
+                st.markdown(overview_card_html, unsafe_allow_html=True)
             else:
                 st.info("No health predictions evaluated yet. Click 'Capture Live Snapshot' in the sidebar.")
 
@@ -234,11 +232,11 @@ def main() -> None:
 
         tier_cols = st.columns(5)
         tiers = [
-            ("Normal", "< 0.35", "80 - 100", "#10B981", "Nominal telemetry pattern matching training baseline."),
+            ("Normal", "&lt; 0.35", "80 - 100", "#10B981", "Nominal telemetry pattern matching training baseline."),
             ("Low", "0.35 - 0.55", "65 - 79", "#3B82F6", "Mild metric variance; well within normal parameters."),
             ("Moderate", "0.55 - 0.75", "45 - 64", "#F59E0B", "Noticeable divergence from normal baseline cluster."),
             ("High", "0.75 - 0.90", "25 - 44", "#F97316", "Significant behavioral outlier; review workload/processes."),
-            ("Critical", ">= 0.90", "0 - 24", "#EF4444", "Severe anomaly or hardware saturation >=95%."),
+            ("Critical", "&ge; 0.90", "0 - 24", "#EF4444", "Severe anomaly or hardware saturation &ge;95%."),
         ]
 
         active_cat = latest_pred.risk_category.value if latest_pred else ""
@@ -247,23 +245,26 @@ def main() -> None:
             with tier_cols[idx]:
                 is_active = active_cat == name
                 border_style = f"3px solid {col}" if is_active else "1px solid #E2E8F0"
-                bg_style = "rgba(16, 185, 129, 0.08)" if is_active else "#FFFFFF"
-                active_badge = f"<span style='background:{col}; color:#FFF; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;'>CURRENT</span>" if is_active else ""
-
-                st.markdown(
-                    f"""
-                    <div style='border:{border_style}; background-color:{bg_style}; padding:12px; border-radius:8px; height:180px;'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
-                            <b style='color:{col}; font-size:15px;'>{name}</b>
-                            {active_badge}
-                        </div>
-                        <div style='font-size:12px; color:#475569; margin-top:8px;'><b>Anomaly:</b> {thresh}</div>
-                        <div style='font-size:12px; color:#475569;'><b>Health:</b> {health}</div>
-                        <p style='font-size:11px; color:#64748B; margin-top:8px; line-height:1.3;'>{desc}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                badge_info = get_risk_badge(name)
+                bg_style = badge_info["bg"] if is_active else "#FFFFFF"
+                active_badge = (
+                    f"<span style='background:{col}; color:#FFF; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;'>CURRENT</span>"
+                    if is_active
+                    else ""
                 )
+
+                card_html = (
+                    f"<div style='border:{border_style}; background-color:{bg_style}; padding:12px; border-radius:8px; height:180px; box-sizing:border-box;'>"
+                    f"<div style='display:flex; justify-content:space-between; align-items:center;'>"
+                    f"<b style='color:{col}; font-size:15px;'>{name}</b>"
+                    f"{active_badge}"
+                    f"</div>"
+                    f"<div style='font-size:12px; color:#475569; margin-top:8px;'><b>Anomaly:</b> {thresh}</div>"
+                    f"<div style='font-size:12px; color:#475569;'><b>Health:</b> {health}</div>"
+                    f"<p style='font-size:11px; color:#64748B; margin-top:8px; line-height:1.3; margin-bottom:0;'>{desc}</p>"
+                    f"</div>"
+                )
+                st.markdown(card_html, unsafe_allow_html=True)
 
     # -------------------------------------------------------------------------
     # Page 3: Real-Time Monitoring

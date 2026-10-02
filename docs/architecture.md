@@ -116,7 +116,7 @@ The codebase enforces strict separation of concerns, isolating hardware I/O, mat
 ### 2.6 Dashboard & Presentation (`app/dashboard/`) — *Implemented in Phase 6*
 * **Responsibility**: Interactive web visualization, system health telemetry monitoring, anomaly auditing, and database inspection using Streamlit and Plotly.
 * **Architecture & Components**:
-  - `app.py`: Streamlit entry point orchestrating 6 comprehensive views: System Overview, Health & Risk Analysis, Real-Time Monitoring, Historical Telemetry, Anomaly Audit Log, and Database Inspection.
+  - `dashboard_main.py`: Streamlit entry point orchestrating 6 comprehensive views: System Overview, Health & Risk Analysis, Real-Time Monitoring, Historical Telemetry, Anomaly Audit Log, and Database Inspection.
   - `services/dashboard_service.py`: High-level coordination layer decoupling the web UI from direct database and ML layers; provides thread-safe background monitoring controls with `threading.Event`, live telemetry snapshots, historical query bounds, and safe fallback handling.
   - `charts/builders.py`: Modular Plotly chart builders generating interactive gauges (Health Score 0–100, Anomaly Probability 0.0–1.0), resource breakdown bars with threshold reference lines, dual-axis multi-metric time-series graphs, and risk-categorized anomaly scatter charts.
   - `components/`: Reusable Streamlit UI widgets including `status_header.py` (system state banner), `metrics_cards.py` (CPU/RAM/Disk/Network/Process metrics with warning thresholds), and `health_card.py` (gauge visualizers, risk tier matrix, heuristic fallback notices, and academic disclaimers).

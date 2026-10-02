@@ -29,17 +29,15 @@ def render_status_header(
     col_title, col_status = st.columns([3, 2])
 
     with col_title:
-        st.markdown(
-            """
-            <h2 style='margin-bottom: 2px; color: #1E293B;'>
-                🖥️ AI Server Health & Failure Risk Monitor
-            </h2>
-            <p style='color: #64748B; font-size: 14px; margin-top: 0;'>
-                Real-Time OS Telemetry, Isolation Forest Anomaly Detection & Risk Analysis
-            </p>
-            """,
-            unsafe_allow_html=True,
+        title_html = (
+            "<h2 style='margin-bottom: 2px; color: #1E293B; font-weight:700;'>"
+            "🖥️ AI Server Health &amp; Failure Risk Monitor"
+            "</h2>"
+            "<p style='color: #64748B; font-size: 14px; margin-top: 0;'>"
+            "Real-Time OS Telemetry, Isolation Forest Anomaly Detection &amp; Risk Analysis"
+            "</p>"
         )
+        st.markdown(title_html, unsafe_allow_html=True)
 
     with col_status:
         # Status pills
@@ -57,16 +55,14 @@ def render_status_header(
 
         db_pill = f"<span style='background-color:#F1F5F9; color:#334155; padding:4px 8px; border-radius:12px; font-size:12px; font-weight:600;'>🗄️ SQLite: {db_record_count:,} samples</span>"
 
-        st.markdown(
-            f"""
-            <div style='text-align: right; padding-top: 8px;'>
-                {monitor_pill} &nbsp; {model_pill} &nbsp; {db_pill}
-                <div style='color: #94A3B8; font-size: 12px; margin-top: 6px;'>
-                    Last Telemetry: <b>{format_timestamp(last_updated)}</b>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+        status_html = (
+            f"<div style='text-align: right; padding-top: 8px;'>"
+            f"{monitor_pill} &nbsp; {model_pill} &nbsp; {db_pill}"
+            f"<div style='color: #94A3B8; font-size: 12px; margin-top: 6px;'>"
+            f"Last Telemetry: <b>{format_timestamp(last_updated)}</b>"
+            f"</div>"
+            f"</div>"
         )
+        st.markdown(status_html, unsafe_allow_html=True)
 
     st.markdown("<hr style='margin-top: 8px; margin-bottom: 20px; border-color: #E2E8F0;'>", unsafe_allow_html=True)

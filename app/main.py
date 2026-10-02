@@ -147,7 +147,7 @@ def main(
         if "--dashboard" in sys.argv or "-d" in sys.argv:
             import subprocess
             logger.info("Launching Streamlit Web Dashboard on port %d...", settings.dashboard_port)
-            dash_path = settings.base_dir / "app" / "dashboard" / "app.py"
+            dash_path = settings.base_dir / "app" / "dashboard" / "dashboard_main.py"
             cmd = [
                 sys.executable,
                 "-m",

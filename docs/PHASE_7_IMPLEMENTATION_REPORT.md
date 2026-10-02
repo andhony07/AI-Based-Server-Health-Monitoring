@@ -150,7 +150,7 @@ Total:                                         195 passing tests (100% passing r
 
 ## 6. Verification of the Six Dashboard Views
 
-All six views of the Streamlit application ([`app/dashboard/app.py`](file:///e:/DSA/AI-Based%20Server%20Health%20Monitoring/app/dashboard/app.py)) were inspected and verified:
+All six views of the Streamlit application ([`app/dashboard/dashboard_main.py`](file:///e:/DSA/AI-Based%20Server%20Health%20Monitoring/app/dashboard/dashboard_main.py)) were inspected and verified:
 
 1. **📊 System Overview**:
    - Top status header displaying active monitoring state, loaded ML model, and SQLite sample counts.
@@ -229,7 +229,7 @@ To perform an end-to-end academic demonstration of the system:
    ```powershell
    python run.py --dashboard
    # Or directly:
-   streamlit run app/dashboard/app.py
+   streamlit run app/dashboard/dashboard_main.py
    ```
 6. **Navigate All 6 Views**:
    - Observe live gauges, start background monitoring, inspect historical trends, review anomaly logs, and inspect SQLite persistence.

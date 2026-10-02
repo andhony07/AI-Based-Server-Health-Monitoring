@@ -103,7 +103,7 @@ AI-Predictive-System-Health-Monitoring/
 │   │
 │   ├── dashboard/                    # Streamlit & Plotly UI visualization (Phase 6)
 │   │   ├── __init__.py               # Exports DashboardService
-│   │   ├── app.py                    # Streamlit web application entry point
+│   │   ├── dashboard_main.py         # Streamlit web application entry point
 │   │   ├── components/               # Status header, metric cards, health cards
 │   │   ├── charts/                   # Plotly gauges, time-series, and scatter builders
 │   │   ├── services/                 # DashboardService data access and coordinator
@@ -479,7 +479,7 @@ The dashboard is structured under `app/dashboard/` to maintain clean separation 
 
 ```text
 app/dashboard/
-├── app.py                      # Streamlit application entry point & page router
+├── dashboard_main.py         # Streamlit application entry point & page router
 ├── services/
 │   ├── __init__.py
 │   └── dashboard_service.py    # Coordination layer (metrics, predictions, history, lifecycle)
@@ -534,7 +534,7 @@ To start the Streamlit web dashboard:
 python run.py --dashboard
 
 # Or using the Streamlit CLI directly
-streamlit run app/dashboard/app.py --server.port 8501
+streamlit run app/dashboard/dashboard_main.py --server.port 8501
 ```
 
 Once launched, navigate to `http://localhost:8501` in your web browser.
