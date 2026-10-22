@@ -42,14 +42,14 @@ def render_health_and_risk(
             prediction.health_score,
             risk_category=prediction.risk_category,
         )
-        st.plotly_chart(fig_health, use_container_width=True)
+        st.plotly_chart(fig_health, width="stretch")
 
     with col_anomaly:
         fig_anomaly = build_anomaly_gauge(
             prediction.anomaly_score,
             is_anomaly=prediction.is_anomaly,
         )
-        st.plotly_chart(fig_anomaly, use_container_width=True)
+        st.plotly_chart(fig_anomaly, width="stretch")
 
         decision_boundary = "Outlier Triggered (Score &gt; 0.50)" if prediction.is_anomaly else "Nominal Cluster (Score &le; 0.50)"
         summary_html = (

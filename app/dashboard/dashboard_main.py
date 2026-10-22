@@ -26,11 +26,14 @@ from app.dashboard.charts.builders import (
     build_multi_metric_timeseries,
     build_resource_breakdown_bar,
 )
+from app.dashboard.components.diagnostic_card import render_diagnostic_report
 from app.dashboard.components.health_card import render_health_and_risk
 from app.dashboard.components.metrics_cards import render_metric_cards
 from app.dashboard.components.status_header import render_status_header
 from app.dashboard.services.dashboard_service import DashboardService
 from app.dashboard.utils.formatting import format_bytes, format_percent, format_timestamp, get_risk_badge
+from app.ml.simulation import SCENARIO_PROFILES, SimulationScenario
+
 
 
 # -----------------------------------------------------------------------------
@@ -61,7 +64,12 @@ def main() -> None:
     """Main dashboard application flow."""
     configure_page()
     service = get_dashboard_service()
+    if not hasattr(service, "run_simulation") or not hasattr(service, "get_operational_status"):
+        # Invalidate stale in-memory cached instance from prior Streamlit hot-reload
+        get_dashboard_service.clear()
+        service = get_dashboard_service()
     settings: Settings = service.settings
+
 
     # -------------------------------------------------------------------------
     # Sidebar Navigation & Operational Controls
@@ -73,10 +81,11 @@ def main() -> None:
             options=[
                 "📊 System Overview",
                 "🛡️ Health & Risk Analysis",
+                "🧪 Anomaly Simulation",
                 "⚡ Real-Time Monitoring",
                 "📈 Historical Telemetry",
                 "🔍 Anomaly Audit Log",
-                "🗄️ Database Inspection",
+                "🗄️ Database & Operational Status",
             ],
             index=0,
             label_visibility="collapsed",
@@ -86,7 +95,7 @@ def main() -> None:
         st.markdown("### ⚙️ Live Controls")
 
         # Snapshot button
-        if st.button("📸 Capture Live Snapshot", use_container_width=True, type="primary"):
+        if st.button("📸 Capture Live Snapshot", width="stretch", type="primary"):
             with st.spinner("Capturing live telemetry sample..."):
                 _, pred, err = service.capture_live_snapshot(persist=True)
                 if err:
@@ -98,12 +107,12 @@ def main() -> None:
         # Background monitoring toggle
         is_bg_running = service.is_background_monitoring_running()
         if is_bg_running:
-            if st.button("⏹️ Stop Background Worker", use_container_width=True):
+            if st.button("⏹️ Stop Background Worker", width="stretch"):
                 service.stop_background_monitoring()
                 st.info("Stopped background monitoring thread.")
                 st.rerun()
         else:
-            if st.button("▶️ Start Background Worker", use_container_width=True):
+            if st.button("▶️ Start Background Worker", width="stretch"):
                 service.start_background_monitoring()
                 st.success("Started background monitoring thread.")
                 st.rerun()
@@ -119,7 +128,7 @@ def main() -> None:
             disabled=not auto_refresh,
         )
 
-        if st.button("🔄 Refresh Now", use_container_width=True):
+        if st.button("🔄 Refresh Now", width="stretch"):
             st.rerun()
 
         st.markdown("---")
@@ -162,7 +171,7 @@ def main() -> None:
 
         with col_res:
             fig_bar = build_resource_breakdown_bar(latest_metric)
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, width="stretch")
 
         with col_quick_health:
             st.markdown("#### Operational Health Status")
@@ -213,7 +222,7 @@ def main() -> None:
                     for s in reversed(recent_samples)
                 ]
             )
-            st.dataframe(df_recent, use_container_width=True, hide_index=True)
+            st.dataframe(df_recent, width="stretch", hide_index=True)
         else:
             st.info("No recent samples available in database.")
 
@@ -266,10 +275,91 @@ def main() -> None:
                 )
                 st.markdown(card_html, unsafe_allow_html=True)
 
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("#### 🩺 Explainable Diagnostic Recommendations & Operational Guidance")
+        diag_report = service.get_diagnostics_for_latest()
+        render_diagnostic_report(diag_report)
+
+    # -------------------------------------------------------------------------
+    # Page: Anomaly Simulation
+    # -------------------------------------------------------------------------
+    elif page == "🧪 Anomaly Simulation":
+        st.subheader("Safe, Deterministic Anomaly Simulation & ML Pipeline Evaluation")
+        st.caption(
+            "Synthetically generates reproducible, physically-valid telemetry anomaly profiles and executes them through "
+            "the 39-feature preprocessing pipeline and active ML models. Absolutely no physical OS-level fault injection "
+            "or hardware stress is performed."
+        )
+
+        col_scen, col_opts = st.columns([2, 1])
+
+        with col_scen:
+            scenarios = list(SCENARIO_PROFILES.keys())
+            scenario_labels = [f"{SCENARIO_PROFILES[s].name} — ({SCENARIO_PROFILES[s].stress_subsystem})" for s in scenarios]
+            selected_idx = st.selectbox(
+                "Select Deterministic Anomaly Scenario Profile",
+                options=range(len(scenarios)),
+                format_func=lambda i: scenario_labels[i],
+                index=1,  # Default to CPU Thread Runaway
+            )
+            selected_scenario = scenarios[selected_idx]
+            profile = SCENARIO_PROFILES[selected_scenario]
+
+            st.info(
+                f"**Scenario Profile:** {profile.description}\n\n"
+                f"**Expected Risk Tier:** `{profile.expected_risk.value}` &nbsp;|&nbsp; "
+                f"**Primary Subsystem:** `{profile.stress_subsystem}` &nbsp;|&nbsp; "
+                f"**Statistical Outlier Expected:** `{'Yes' if profile.is_anomaly_expected else 'No'}`"
+            )
+
+        with col_opts:
+            st.markdown("##### Execution Parameters")
+            sim_seed = st.number_input("Deterministic Random Seed", min_value=1, max_value=99999, value=42, step=1)
+            persist_sim = st.checkbox("Commit Sample to SQLite", value=False, help="Persist the generated telemetry and 39-feature vector into the database.")
+            run_sim = st.button("🚀 Run Anomaly Simulation", type="primary", width="stretch")
+
+        if run_sim or "last_sim_result" in st.session_state:
+            if run_sim:
+                with st.spinner("Executing deterministic simulation through ML pipeline..."):
+                    sim_res, sim_diag = service.run_simulation(
+                        scenario=selected_scenario,
+                        persist=persist_sim,
+                        seed=int(sim_seed),
+                    )
+                    st.session_state["last_sim_result"] = sim_res
+                    st.session_state["last_sim_diag"] = sim_diag
+            else:
+                sim_res = st.session_state["last_sim_result"]
+                sim_diag = st.session_state["last_sim_diag"]
+
+            st.markdown("---")
+            st.markdown(f"### Simulation Execution Report: {sim_res.profile.name}")
+
+            if sim_res.persisted:
+                st.success(f"Sample successfully committed to SQLite! (Metric ID: #{sim_res.metric_id}, Feature ID: #{sim_res.feature_id})")
+
+            # 1. Simulated Telemetry Snapshot
+            st.markdown("#### 1. Simulated Hardware Telemetry `[SIMULATED]`")
+            render_metric_cards(sim_res.metrics, is_simulated=True)
+
+            # 2. Machine Learning Evaluation
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("#### 2. Machine Learning Pipeline Evaluation")
+            render_health_and_risk(
+                prediction=sim_res.prediction,
+                is_model_trained=service.prediction_service.is_model_ready(),
+            )
+
+            # 3. Explainable Diagnostic Report
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("#### 3. Explainable Diagnostic Recommendations")
+            render_diagnostic_report(sim_diag)
+
     # -------------------------------------------------------------------------
     # Page 3: Real-Time Monitoring
     # -------------------------------------------------------------------------
     elif page == "⚡ Real-Time Monitoring":
+
         st.subheader("Live Operational Monitoring")
 
         st.markdown(
@@ -373,10 +463,26 @@ def main() -> None:
             limit=settings.dashboard_historical_limit,
         )
 
-        st.caption(f"Displaying **{len(hist_records)}** historical records from SQLite.")
+        col_c1, col_c2 = st.columns([3, 1])
+        with col_c1:
+            st.caption(f"Displaying **{len(hist_records)}** historical records from SQLite.")
+        with col_c2:
+            csv_metrics = service.export_metrics_csv(
+                start_time=start_dt,
+                end_time=now if start_dt else None,
+                limit=settings.dashboard_historical_limit,
+            )
+            st.download_button(
+                label="⬇️ Export Telemetry CSV",
+                data=csv_metrics,
+                file_name=f"telemetry_metrics_{now.strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                width="stretch",
+            )
+
 
         fig_ts = build_multi_metric_timeseries(hist_records, selected_metrics=selected_metrics)
-        st.plotly_chart(fig_ts, use_container_width=True)
+        st.plotly_chart(fig_ts, width="stretch")
 
         with st.expander("📄 View Historical Records Table", expanded=False):
             if hist_records:
@@ -395,7 +501,7 @@ def main() -> None:
                         for r in hist_records
                     ]
                 )
-                st.dataframe(df_hist, use_container_width=True)
+                st.dataframe(df_hist, width="stretch")
             else:
                 st.info("No records in the selected range.")
 
@@ -414,7 +520,7 @@ def main() -> None:
 
         if anomalies:
             fig_scatter = build_anomaly_scatter_chart(anomalies)
-            st.plotly_chart(fig_scatter, use_container_width=True)
+            st.plotly_chart(fig_scatter, width="stretch")
 
             col_f1, col_f2 = st.columns(2)
             with col_f1:
@@ -432,7 +538,19 @@ def main() -> None:
                 and (a["risk_category"] in filter_risk)
             ]
 
-            st.markdown(f"Found **{len(filtered)}** matching evaluation records.")
+            col_m1, col_m2 = st.columns([3, 1])
+            with col_m1:
+                st.markdown(f"Found **{len(filtered)}** matching evaluation records.")
+            with col_m2:
+                csv_anom = service.export_anomalies_csv(limit=limit, filter_anomalies_only=filter_anom)
+                st.download_button(
+                    label="⬇️ Export Audit Log CSV",
+                    data=csv_anom,
+                    file_name=f"anomaly_audit_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    width="stretch",
+                )
+
 
             df_anom = pd.DataFrame(
                 [
@@ -450,14 +568,72 @@ def main() -> None:
                     for a in filtered
                 ]
             )
-            st.dataframe(df_anom, use_container_width=True, hide_index=True)
+            st.dataframe(df_anom, width="stretch", hide_index=True)
         else:
             st.info("No historical feature vectors available to evaluate.")
 
     # -------------------------------------------------------------------------
-    # Page 6: Database Inspection
+    # Page 6: Database & Operational Status
     # -------------------------------------------------------------------------
-    elif page == "🗄️ Database Inspection":
+    elif page in ("🗄️ Database & Operational Status", "🗄️ Database Inspection"):
+        st.subheader("System Operational Health Status & Database Inspector")
+
+        op_status = service.get_operational_status()
+
+        # Operational Status Banner
+        if op_status["overall_status"] == "HEALTHY":
+            st.success(f"### 🟢 System Status: {op_status['overall_status']}\n{op_status['headline']}")
+        elif op_status["overall_status"] == "DEGRADED":
+            st.warning(f"### 🟡 System Status: {op_status['overall_status']}\n{op_status['headline']}")
+        else:
+            st.error(f"### 🔴 System Status: {op_status['overall_status']}\n{op_status['headline']}")
+
+        # Subsystems Status Cards
+        st.markdown("#### 🏥 Subsystem Operational Health Checks")
+        sc1, sc2, sc3, sc4 = st.columns(4)
+
+        with sc1:
+            db_sub = op_status["subsystems"]["database"]
+            db_icon = "🟢" if db_sub["status"] == "OPERATIONAL" else "🔴"
+            st.metric(
+                label=f"{db_icon} SQLite Database",
+                value=db_sub["status"],
+                delta=f"Integrity: {db_sub['integrity']}",
+            )
+            st.caption(f"Rows: {db_sub['telemetry_rows']:,}")
+
+        with sc2:
+            ml_sub = op_status["subsystems"]["ml_engine"]
+            ml_icon = "🟢" if ml_sub["status"] == "OPERATIONAL" else "🟡"
+            st.metric(
+                label=f"{ml_icon} ML Model Engine",
+                value=ml_sub["status"],
+                delta=ml_sub["model_name"],
+            )
+            st.caption(f"{ml_sub['mode']}")
+
+        with sc3:
+            col_sub = op_status["subsystems"]["collector"]
+            col_icon = "🟢" if col_sub["status"] == "OPERATIONAL" else "🔴"
+            st.metric(
+                label=f"{col_icon} Hardware Collectors",
+                value=col_sub["status"],
+                delta=f"{len(col_sub['domains'])} domains",
+            )
+            st.caption(f"{', '.join(col_sub['domains'])}")
+
+        with sc4:
+            fresh_sub = op_status["subsystems"]["telemetry_freshness"]
+            f_icon = "🟢" if fresh_sub["status"] == "FRESH" else ("🟡" if fresh_sub["status"] == "WARM" else "⚪")
+            delta_val = f"{fresh_sub['seconds_since_last_sample']}s ago" if fresh_sub['seconds_since_last_sample'] is not None else "No telemetry"
+            st.metric(
+                label=f"{f_icon} Ingestion Freshness",
+                value=fresh_sub["status"],
+                delta=delta_val,
+            )
+            st.caption(f"Worker: {op_status['subsystems']['background_worker']['status']}")
+
+        st.markdown("---")
         st.subheader("SQLite Persistence Engine & Schema Inspector")
 
         db_summary = service.get_database_summary()
@@ -485,26 +661,44 @@ def main() -> None:
             st.markdown(f"**Retention Policy:** {f'{ret_days} days' if ret_days else 'Indefinite'}")
 
         st.markdown("---")
-        st.markdown("#### Table Data Explorer")
+        col_exp_title, col_exp_btn = st.columns([2, 1])
+        with col_exp_title:
+            st.markdown("#### Table Data Explorer")
         table_choice = st.selectbox("Select Table to Inspect", ["system_metrics", "feature_vectors", "validation_logs"])
         table_limit = st.slider("Rows to Display", min_value=5, max_value=100, value=15, step=5)
+
+        with col_exp_btn:
+            if table_choice == "feature_vectors":
+                csv_tbl = service.export_features_csv(limit=table_limit)
+                file_name = f"feature_vectors_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+            else:
+                csv_tbl = service.export_metrics_csv(limit=table_limit)
+                file_name = f"system_metrics_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+            st.download_button(
+                label=f"⬇️ Export {table_choice} CSV",
+                data=csv_tbl,
+                file_name=file_name,
+                mime="text/csv",
+                width="stretch",
+            )
+
 
         if table_choice == "system_metrics":
             records = service.get_historical_metrics(limit=table_limit)
             if records:
-                st.dataframe([r.__dict__ for r in reversed(records)], use_container_width=True)
+                st.dataframe([r.__dict__ for r in reversed(records)], width="stretch")
             else:
                 st.info("No records in system_metrics.")
         elif table_choice == "feature_vectors":
             features = service.get_historical_features(limit=table_limit)
             if features:
-                st.dataframe([f.__dict__ for f in reversed(features)], use_container_width=True)
+                st.dataframe([f.__dict__ for f in reversed(features)], width="stretch")
             else:
                 st.info("No records in feature_vectors.")
         elif table_choice == "validation_logs":
             logs = service.get_recent_validation_logs(limit=table_limit)
             if logs:
-                st.dataframe([l.__dict__ for l in reversed(logs)], use_container_width=True)
+                st.dataframe([l.__dict__ for l in reversed(logs)], width="stretch")
             else:
                 st.info("No records in validation_logs.")
 

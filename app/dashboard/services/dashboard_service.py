@@ -6,6 +6,8 @@ and machine learning inference for Streamlit visualization views.
 
 from __future__ import annotations
 
+import csv
+import io
 import os
 import threading
 import time
@@ -24,9 +26,18 @@ from app.database.models import (
     ValidationLogRecord,
     parse_utc_timestamp,
 )
+from app.database.schema import FEATURE_COLUMNS
 from app.database.service import PersistenceService
+from app.ml.diagnostics import DiagnosticEngine, DiagnosticReport
 from app.ml.models import PredictionResult, RiskCategory
 from app.ml.prediction_service import PredictionService
+from app.ml.simulation import (
+    DeterministicAnomalySimulator,
+    SCENARIO_PROFILES,
+    ScenarioProfile,
+    SimulationResult,
+    SimulationScenario,
+)
 from app.models.metrics import SystemMetrics
 from app.preprocessing.pipeline import PreprocessingPipeline, ProcessedTelemetry
 
@@ -47,6 +58,8 @@ class DashboardService:
         prediction_service: Optional[PredictionService] = None,
         collector: Optional[SystemCollector] = None,
         pipeline: Optional[PreprocessingPipeline] = None,
+        simulator: Optional[DeterministicAnomalySimulator] = None,
+        diagnostic_engine: Optional[DiagnosticEngine] = None,
     ) -> None:
         """Initialize the dashboard service.
 
@@ -56,6 +69,8 @@ class DashboardService:
             prediction_service: Optional custom PredictionService.
             collector: Optional custom SystemCollector.
             pipeline: Optional custom PreprocessingPipeline.
+            simulator: Optional DeterministicAnomalySimulator instance.
+            diagnostic_engine: Optional DiagnosticEngine instance.
         """
         self.settings: Settings = settings or get_settings()
         self.persistence: PersistenceService = (
@@ -67,6 +82,12 @@ class DashboardService:
         self.collector: SystemCollector = collector or SystemCollector(settings=self.settings)
         self.pipeline: PreprocessingPipeline = (
             pipeline or PreprocessingPipeline(settings=self.settings)
+        )
+        self.simulator: DeterministicAnomalySimulator = (
+            simulator or DeterministicAnomalySimulator()
+        )
+        self.diagnostic_engine: DiagnosticEngine = (
+            diagnostic_engine or DiagnosticEngine()
         )
 
     # -------------------------------------------------------------------------
@@ -417,3 +438,343 @@ class DashboardService:
         except Exception as exc:
             logger.warning("Could not retrieve validation logs: %s", exc)
             return []
+
+    # -------------------------------------------------------------------------
+    # Anomaly Simulation & Diagnostic Integration
+    # -------------------------------------------------------------------------
+
+    def run_simulation(
+        self,
+        scenario: Union[SimulationScenario, str],
+        persist: bool = False,
+        seed: int = 42,
+        **kwargs: Any,
+    ) -> tuple[SimulationResult, DiagnosticReport]:
+        """Execute a deterministic anomaly simulation through the full ML pipeline.
+
+        Args:
+            scenario: Simulation scenario enum or string key.
+            persist: If True, commits the sample to the SQLite database.
+            seed: Deterministic integer seed.
+            **kwargs: Metric parameter overrides.
+
+        Returns:
+            Tuple of (SimulationResult, DiagnosticReport).
+        """
+        sim_res = self.simulator.simulate(
+            scenario=scenario,
+            pipeline=self.pipeline,
+            prediction_service=self.prediction_service,
+            persistence_service=self.persistence if persist else None,
+            persist=persist,
+            seed=seed,
+            **kwargs,
+        )
+        diag_report = self.diagnostic_engine.generate_report(
+            prediction=sim_res.prediction,
+            metrics=sim_res.metrics,
+            features=sim_res.processed.feature_vector.features,
+            timestamp=sim_res.metrics.timestamp,
+        )
+        return sim_res, diag_report
+
+    def get_diagnostics_for_latest(self) -> Optional[DiagnosticReport]:
+        """Evaluate explainable diagnostic recommendations on the latest system telemetry.
+
+        Returns:
+            DiagnosticReport or None if no telemetry data exists.
+        """
+        latest_metric = self.get_latest_metrics()
+        latest_feat = self.get_latest_feature_vector()
+        latest_pred = self.get_latest_prediction()
+        if latest_metric is None and latest_pred is None:
+            return None
+
+        return self.diagnostic_engine.generate_report(
+            prediction=latest_pred,
+            metrics=latest_metric,
+            features=latest_feat.features if latest_feat else None,
+            timestamp=latest_pred.timestamp if latest_pred else (latest_metric.timestamp if latest_metric else None),
+        )
+
+    # -------------------------------------------------------------------------
+    # Operational Status Checks
+    # -------------------------------------------------------------------------
+
+    def get_operational_status(self) -> dict[str, Any]:
+        """Execute non-destructive operational status checks across all monitoring subsystems.
+
+        Returns:
+            Structured operational health dictionary with status indicators and details.
+        """
+        db_path = self.persistence.db_path
+        db_exists = db_path.exists()
+        db_integrity = "unknown"
+        db_err = None
+
+        if db_exists:
+            try:
+                with get_connection(db_path, timeout=3.0) as conn:
+                    cur = conn.execute("PRAGMA quick_check;")
+                    row = cur.fetchone()
+                    db_integrity = row[0] if row else "unknown"
+            except Exception as exc:
+                db_integrity = "error"
+                db_err = str(exc)
+
+        # 1. Database Subsystem
+        counts = self.persistence.get_record_counts() if db_exists and db_integrity == "ok" else {}
+        db_status = "OPERATIONAL" if (db_exists and db_integrity == "ok") else ("DEGRADED" if db_exists else "ERROR")
+
+        # 2. ML Engine Subsystem
+        is_model_ready = self.prediction_service.is_model_ready()
+        ml_status = "OPERATIONAL" if is_model_ready else "FALLBACK"
+        ml_details = {
+            "status": ml_status,
+            "model_name": self.prediction_service.model_name,
+            "is_trained": is_model_ready,
+            "expected_features": 39,
+            "mode": "Trained Isolation Forest" if is_model_ready else "Deterministic Heuristic Baseline",
+        }
+
+        # 3. Collector Subsystem
+        collector_ok = True
+        collector_err = None
+        try:
+            # Check basic collector availability safely
+            import psutil
+            psutil.cpu_percent(interval=0.0)
+            psutil.virtual_memory()
+        except Exception as exc:
+            collector_ok = False
+            collector_err = str(exc)
+        collector_status = "OPERATIONAL" if collector_ok else "ERROR"
+
+        # 4. Background Monitoring Worker
+        bg_running = self.is_background_monitoring_running()
+        worker_status = "ACTIVE" if bg_running else "IDLE"
+
+        # 5. Telemetry Freshness
+        latest = self.get_latest_metrics()
+        now_utc = datetime.now(timezone.utc)
+        freshness_status = "NO_DATA"
+        seconds_ago: Optional[float] = None
+
+        if latest and latest.timestamp:
+            ts = latest.timestamp if latest.timestamp.tzinfo is not None else latest.timestamp.replace(tzinfo=timezone.utc)
+            seconds_ago = max(0.0, (now_utc - ts).total_seconds())
+            if seconds_ago < 60.0:
+                freshness_status = "FRESH"
+            elif seconds_ago < 300.0:
+                freshness_status = "WARM"
+            else:
+                freshness_status = "STALE"
+
+        # Aggregate Overall System Operational State
+        if db_status == "ERROR" or collector_status == "ERROR":
+            overall = "CRITICAL"
+            color = "#EF4444"
+            headline = "One or more critical subsystems encountered an operational error."
+        elif ml_status == "FALLBACK" or freshness_status in ("STALE", "NO_DATA"):
+            overall = "DEGRADED"
+            color = "#F59E0B"
+            headline = "System is operational with warnings (heuristic ML baseline or stale telemetry)."
+        else:
+            overall = "HEALTHY"
+            color = "#10B981"
+            headline = "All platform subsystems (SQLite, ML engine, collectors, telemetry) operational."
+
+        return {
+            "timestamp": now_utc.isoformat(),
+            "overall_status": overall,
+            "status_color": color,
+            "headline": headline,
+            "subsystems": {
+                "database": {
+                    "status": db_status,
+                    "path": str(db_path),
+                    "exists": db_exists,
+                    "integrity": db_integrity,
+                    "error": db_err,
+                    "telemetry_rows": counts.get("system_metrics", 0),
+                    "feature_rows": counts.get("feature_vectors", 0),
+                    "validation_rows": counts.get("validation_logs", 0),
+                },
+                "ml_engine": ml_details,
+                "collector": {
+                    "status": collector_status,
+                    "error": collector_err,
+                    "domains": ["CPU", "Memory", "Disk", "Network", "Processes"],
+                },
+                "background_worker": {
+                    "status": worker_status,
+                    "is_running": bg_running,
+                },
+                "telemetry_freshness": {
+                    "status": freshness_status,
+                    "latest_timestamp": latest.timestamp.isoformat() if latest else None,
+                    "seconds_since_last_sample": round(seconds_ago, 1) if seconds_ago is not None else None,
+                },
+            },
+        }
+
+    # -------------------------------------------------------------------------
+    # CSV Telemetry & Anomaly Export
+    # -------------------------------------------------------------------------
+
+    def export_metrics_csv(
+        self,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: int = 500,
+    ) -> str:
+        """Export historical system telemetry records as an RFC-4180 compliant CSV string.
+
+        Args:
+            start_time: Optional UTC start filter.
+            end_time: Optional UTC end filter.
+            limit: Maximum count of rows to return.
+
+        Returns:
+            CSV formatted text string.
+        """
+        records = self.get_historical_metrics(start_time=start_time, end_time=end_time, limit=limit)
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        headers = [
+            "id",
+            "timestamp_utc",
+            "cpu_percent",
+            "cpu_logical_cores",
+            "memory_percent",
+            "memory_used_mb",
+            "memory_available_mb",
+            "memory_total_mb",
+            "disk_percent",
+            "disk_used_gb",
+            "disk_free_gb",
+            "disk_total_gb",
+            "network_bytes_sent_per_sec",
+            "network_bytes_recv_per_sec",
+            "process_count",
+            "top_process_name",
+            "top_process_pid",
+            "top_process_cpu_percent",
+            "top_process_memory_percent",
+        ]
+        writer.writerow(headers)
+
+        for r in records:
+            writer.writerow([
+                r.id,
+                r.timestamp.isoformat() if r.timestamp else "",
+                r.cpu_percent if r.cpu_percent is not None else "",
+                r.cpu_logical_cores if r.cpu_logical_cores is not None else "",
+                r.memory_percent if r.memory_percent is not None else "",
+                round(r.memory_used_bytes / (1024 * 1024), 2) if r.memory_used_bytes else "",
+                round(r.memory_available_bytes / (1024 * 1024), 2) if r.memory_available_bytes else "",
+                round(r.memory_total_bytes / (1024 * 1024), 2) if r.memory_total_bytes else "",
+                r.disk_percent if r.disk_percent is not None else "",
+                round(r.disk_used_bytes / (1024**3), 2) if r.disk_used_bytes else "",
+                round(r.disk_free_bytes / (1024**3), 2) if r.disk_free_bytes else "",
+                round(r.disk_total_bytes / (1024**3), 2) if r.disk_total_bytes else "",
+                r.network_bytes_sent_per_sec if r.network_bytes_sent_per_sec is not None else "",
+                r.network_bytes_recv_per_sec if r.network_bytes_recv_per_sec is not None else "",
+                r.process_count if r.process_count is not None else "",
+                r.top_process_name or "",
+                r.top_process_pid or "",
+                r.top_process_cpu_percent if r.top_process_cpu_percent is not None else "",
+                r.top_process_memory_percent if r.top_process_memory_percent is not None else "",
+            ])
+
+        return output.getvalue()
+
+    def export_anomalies_csv(
+        self,
+        limit: int = 500,
+        filter_anomalies_only: bool = False,
+    ) -> str:
+        """Export evaluated historical anomaly and risk audit logs as CSV.
+
+        Args:
+            limit: Maximum count of rows to return.
+            filter_anomalies_only: If True, filters strictly to samples where is_anomaly is True.
+
+        Returns:
+            CSV formatted text string.
+        """
+        anomalies = self.get_historical_anomalies(limit=limit)
+        if filter_anomalies_only:
+            anomalies = [a for a in anomalies if a.get("is_anomaly", False)]
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        headers = [
+            "timestamp_utc",
+            "anomaly_score",
+            "is_anomaly",
+            "risk_category",
+            "health_score",
+            "cpu_percent",
+            "memory_percent",
+            "disk_percent",
+            "network_kbps",
+            "model_name",
+            "is_trained_model",
+        ]
+        writer.writerow(headers)
+
+        for a in anomalies:
+            writer.writerow([
+                a["timestamp"].isoformat() if isinstance(a["timestamp"], datetime) else str(a["timestamp"]),
+                f"{a['anomaly_score']:.4f}",
+                "TRUE" if a.get("is_anomaly") else "FALSE",
+                a.get("risk_category", ""),
+                f"{a['health_score']:.2f}" if a.get("health_score") is not None else "",
+                f"{a.get('cpu_percent', 0.0):.1f}" if a.get("cpu_percent") is not None else "",
+                f"{a.get('memory_percent', 0.0):.1f}" if a.get("memory_percent") is not None else "",
+                f"{a.get('disk_percent', 0.0):.1f}" if a.get("disk_percent") is not None else "",
+                f"{a.get('network_kbps', 0.0):.1f}" if a.get("network_kbps") is not None else "",
+                a.get("model_name", ""),
+                "TRUE" if a.get("is_trained_model") else "FALSE",
+            ])
+
+        return output.getvalue()
+
+    def export_features_csv(
+        self,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: int = 500,
+    ) -> str:
+        """Export 39-feature vectors as an RFC-4180 CSV string.
+
+        Args:
+            start_time: Optional UTC start filter.
+            end_time: Optional UTC end filter.
+            limit: Maximum count of records.
+
+        Returns:
+            CSV formatted text string.
+        """
+        features = self.get_historical_features(start_time=start_time, end_time=end_time, limit=limit)
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        headers = ["feature_id", "timestamp_utc", "metric_id"] + list(FEATURE_COLUMNS)
+        writer.writerow(headers)
+
+        for f in features:
+            row = [
+                f.id,
+                f.timestamp.isoformat() if f.timestamp else "",
+                f.metric_id or "",
+            ]
+            for col in FEATURE_COLUMNS:
+                row.append(f.features.get(col, ""))
+            writer.writerow(row)
+
+        return output.getvalue()
+

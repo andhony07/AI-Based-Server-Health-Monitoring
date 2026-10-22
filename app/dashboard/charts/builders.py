@@ -137,21 +137,37 @@ def build_anomaly_gauge(
     return fig
 
 
-def build_resource_breakdown_bar(metric: Optional[SystemMetricRecord]) -> go.Figure:
+def build_resource_breakdown_bar(metric: Optional[Any]) -> go.Figure:
     """Build a comparative bar chart comparing CPU, RAM, and Disk utilization percentages.
 
     Args:
-        metric: Latest SystemMetricRecord.
+        metric: Latest SystemMetricRecord or SystemMetrics instance.
 
     Returns:
         Plotly Figure.
     """
     labels = ["CPU", "Memory (RAM)", "Disk Storage"]
-    values = [
-        metric.cpu_percent if metric and metric.cpu_percent is not None else 0.0,
-        metric.memory_percent if metric and metric.memory_percent is not None else 0.0,
-        metric.disk_percent if metric and metric.disk_percent is not None else 0.0,
-    ]
+
+    cpu_pct = 0.0
+    mem_pct = 0.0
+    disk_pct = 0.0
+    if metric is not None:
+        if hasattr(metric, "cpu_percent"):
+            cpu_pct = metric.cpu_percent if metric.cpu_percent is not None else 0.0
+        elif hasattr(metric, "cpu") and metric.cpu is not None:
+            cpu_pct = getattr(metric.cpu, "utilization_percent", 0.0) or 0.0
+
+        if hasattr(metric, "memory_percent"):
+            mem_pct = metric.memory_percent if metric.memory_percent is not None else 0.0
+        elif hasattr(metric, "memory") and metric.memory is not None:
+            mem_pct = getattr(metric.memory, "utilization_percent", 0.0) or 0.0
+
+        if hasattr(metric, "disk_percent"):
+            disk_pct = metric.disk_percent if metric.disk_percent is not None else 0.0
+        elif hasattr(metric, "disk") and metric.disk is not None:
+            disk_pct = getattr(metric.disk, "utilization_percent", 0.0) or 0.0
+
+    values = [cpu_pct, mem_pct, disk_pct]
 
     colors = []
     for v in values:

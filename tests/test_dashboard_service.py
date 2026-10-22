@@ -19,12 +19,19 @@ from app.database.models import (
     ValidationLogRecord,
 )
 from app.database.service import PersistenceService
+from app.ml.diagnostics import DiagnosticReport
 from app.ml.models import AnomalyResult, HealthScoreResult, PredictionResult, RiskCategory
 from app.ml.prediction_service import PredictionService
+from app.ml.simulation import (
+    SCENARIO_PROFILES,
+    SimulationResult,
+    SimulationScenario,
+)
 from app.models.metrics import CPUMetrics, MemoryMetrics, SystemMetrics
 from app.preprocessing.feature_engineer import FeatureVector
 from app.preprocessing.pipeline import ProcessedTelemetry
 from app.preprocessing.validator import ValidationResult
+
 
 
 @pytest.fixture
@@ -291,3 +298,79 @@ class TestDashboardService:
         assert summary["total_records"] >= 2
         assert summary["earliest_timestamp"] == t1
         assert summary["latest_timestamp"] == t2
+
+    def test_run_simulation_dry_run(
+        self,
+        temp_dashboard_env: tuple[Settings, DashboardService],
+    ) -> None:
+        """Verify DashboardService.run_simulation executes dry-run without SQLite pollution."""
+        _, service = temp_dashboard_env
+
+        assert hasattr(service, "run_simulation")
+        sim_res, sim_diag = service.run_simulation(
+            scenario=SimulationScenario.CPU_SPIKE,
+            persist=False,
+            seed=42,
+        )
+
+        assert isinstance(sim_res, SimulationResult)
+        assert isinstance(sim_diag, DiagnosticReport)
+        assert sim_res.scenario == SimulationScenario.CPU_SPIKE
+        assert sim_res.persisted is False
+        assert sim_res.metric_id is None
+        assert sim_res.feature_id is None
+
+        # Confirm zero database pollution when persist is False
+        assert service.get_latest_metrics() is None
+        summary = service.get_database_summary()
+        assert summary["counts"]["system_metrics"] == 0
+
+        # Verify simulation metrics and prediction outputs
+        assert sim_res.metrics.cpu.utilization_percent >= 90.0
+        assert sim_res.prediction.risk_category in (RiskCategory.HIGH, RiskCategory.CRITICAL)
+        assert sim_diag.critical_count >= 1
+
+    def test_run_simulation_with_persistence(
+        self,
+        temp_dashboard_env: tuple[Settings, DashboardService],
+    ) -> None:
+        """Verify DashboardService.run_simulation with persist=True atomically commits records."""
+        _, service = temp_dashboard_env
+
+        sim_res, sim_diag = service.run_simulation(
+            scenario=SimulationScenario.MEMORY_LEAK,
+            persist=True,
+            seed=42,
+        )
+
+        assert sim_res.persisted is True
+        assert sim_res.metric_id is not None
+        assert sim_res.feature_id is not None
+        assert sim_res.metric_id > 0
+        assert sim_res.feature_id > 0
+
+        # Verify persisted record is queryable via DashboardService
+        latest = service.get_latest_metrics()
+        assert latest is not None
+        assert latest.id == sim_res.metric_id
+        assert latest.memory_percent >= 90.0
+
+        summary = service.get_database_summary()
+        assert summary["counts"]["system_metrics"] == 1
+        assert summary["counts"]["feature_vectors"] == 1
+
+    def test_run_simulation_all_scenarios(
+        self,
+        temp_dashboard_env: tuple[Settings, DashboardService],
+    ) -> None:
+        """Verify DashboardService.run_simulation executes cleanly for all scenario profiles."""
+        _, service = temp_dashboard_env
+
+        for sc in SimulationScenario:
+            sim_res, sim_diag = service.run_simulation(scenario=sc, persist=False, seed=42)
+            assert isinstance(sim_res, SimulationResult)
+            assert isinstance(sim_diag, DiagnosticReport)
+            assert sim_res.scenario == sc
+            assert sim_res.persisted is False
+            assert len(sim_diag.recommendations) >= 1
+

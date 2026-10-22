@@ -48,12 +48,35 @@ from app.ml.supervised import (
 )
 from app.ml.training import ModelTrainer
 
+from app.ml.diagnostics import (
+    DiagnosticCategory,
+    DiagnosticEngine,
+    DiagnosticEvidence,
+    DiagnosticRecommendation,
+    DiagnosticReport,
+    EvidenceLevel,
+)
+from app.ml.simulation import (
+    DeterministicAnomalySimulator,
+    SCENARIO_PROFILES,
+    ScenarioProfile,
+    SimulationResult,
+    SimulationScenario,
+)
+
 __all__: list[str] = [
     "AnomalyDetectorError",
     "AnomalyResult",
     "BaseFailureClassifier",
     "DataLoaderError",
+    "DeterministicAnomalySimulator",
+    "DiagnosticCategory",
+    "DiagnosticEngine",
+    "DiagnosticEvidence",
+    "DiagnosticRecommendation",
+    "DiagnosticReport",
     "EXPECTED_FEATURE_NAMES",
+    "EvidenceLevel",
     "FEATURE_DIMENSION",
     "FailurePredictionRequirements",
     "HealthScoreCalculator",
@@ -72,6 +95,10 @@ __all__: list[str] = [
     "PredictionService",
     "RiskAnalyzer",
     "RiskCategory",
+    "SCENARIO_PROFILES",
+    "ScenarioProfile",
+    "SimulationResult",
+    "SimulationScenario",
     "SupervisedFailureClassifier",
     "feature_dict_to_array",
     "feature_records_to_matrix",
@@ -79,3 +106,4 @@ __all__: list[str] = [
     "inspect_labeled_data_availability",
     "validate_feature_mapping",
 ]
+
