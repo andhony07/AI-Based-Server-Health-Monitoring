@@ -305,7 +305,3 @@ Do not commit secrets or machine-specific sensitive information to the repositor
 - Add remote-host monitoring and centralized storage if multi-machine monitoring is required.
 - Improve alert delivery and configurable notification thresholds.
 - Add further operational monitoring and end-to-end tests for supported deployment environments.
-
-## 15. License
-
-Add a license file and update this section if you intend to distribute the project under a specific open-source license.
