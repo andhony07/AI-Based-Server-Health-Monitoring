@@ -1,60 +1,90 @@
-# AI-Based Predictive System Health Monitoring and Failure Risk Analysis
+<div align="center">
 
-![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
-![Code Style: PEP 8](https://img.shields.io/badge/code%20style-PEP%208-brightgreen.svg)
-![Tests: Pytest](https://img.shields.io/badge/tests-237%20passed-brightgreen.svg)
+# 🖥️ AI-Based Predictive System Health Monitoring
+### & Failure Risk Analysis
 
-A Python-based system monitoring application that collects computer and server telemetry, analyzes resource behavior, detects unusual activity, and presents system health information through an interactive Streamlit dashboard.
+**Collect telemetry. Detect anomalies. Score system health. Understand risk, all in one Streamlit dashboard.**
 
-The application is designed for software-based monitoring of a local computer or server. It combines operating-system metrics, feature engineering, machine learning-based anomaly detection, health scoring, and risk categorization.
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-Isolation%20Forest-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Storage-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-Charts-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
 
-> **Scope note:** Anomaly detection and resource-based risk indicators describe observed system behavior. They do not establish a validated probability that a hardware or operating-system failure will occur. Reliable failure prediction requires representative, labeled failure-event data.
+![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-237%20passed-brightgreen?logo=pytest&logoColor=white)
+![Code Style](https://img.shields.io/badge/code%20style-PEP%208-brightgreen)
 
-## Features
+[Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Dashboard](#-dashboard) • [Simulation](#-simulation--diagnostics) • [Limitations](#-scope--limitations) • [Roadmap](#-roadmap)
 
-- **System telemetry collection:** Monitor CPU, memory, disk, network activity, and running processes.
-- **Data validation and cleaning:** Handle missing, invalid, and non-finite metric values.
-- **Feature engineering:** Transform telemetry into numerical features, including rolling statistics and changes between samples.
-- **Historical storage:** Persist system metrics, feature vectors, and validation records in SQLite.
-- **Anomaly detection:** Use an Isolation Forest model to identify telemetry patterns that differ from the observed baseline.
-- **System health score:** Calculate a score from 0 to 100 using anomaly and resource-utilization penalties.
-- **Risk categorization:** Classify current system conditions into Normal, Low, Moderate, High, or Critical categories.
-- **Interactive dashboard:** Explore current metrics, health indicators, historical trends, anomaly records, and database information.
-- **Live and background monitoring:** Capture an individual snapshot or run periodic collection.
-- **Safe anomaly simulation:** Generate synthetic scenarios for CPU spikes, memory pressure, disk saturation, network saturation, combined resource pressure, and normal baseline behavior.
-- **Explainable diagnostics:** Display evidence-based diagnostic suggestions associated with observed metrics and scenarios.
-- **Operational status:** Inspect component states, worker activity, and telemetry freshness.
-- **CSV exports:** Export supported monitoring and diagnostic data for further analysis.
-- **Model management:** Save and load model artifacts with feature-schema validation and a heuristic fallback when implemented.
-- **Automated testing:** Test core components, persistence, machine learning, dashboard services, simulation, diagnostics, operational status, and CSV exports.
+</div>
 
-## 1. Project Overview
+---
 
-**AI-Based Predictive System Health Monitoring and Failure Risk Analysis** is an academic software platform designed to observe computer and server operational telemetry, identify behavioral anomalies, and present resource-based health and risk indicators.
+> [!IMPORTANT]
+> **Scope note:** Anomaly detection and resource-based risk indicators describe *observed system behavior*. They do **not** establish a validated probability that a hardware or operating-system failure will occur. Reliable failure prediction requires representative, labeled failure-event data.
 
-The application collects host operating-system metrics such as CPU, RAM, disk, network, and process information. It processes the measurements, derives features, evaluates unusual behavior using machine learning where available, and presents the results through a Streamlit dashboard.
+## 📖 Overview
 
-The project includes deterministic simulation scenarios to demonstrate how the application handles different resource-pressure patterns without intentionally creating real CPU, memory, or disk stress on the host.
+**AI-Based Predictive System Health Monitoring and Failure Risk Analysis** is an academic software platform that observes the operational telemetry of a local computer or server, identifies behavioral anomalies, and presents resource-based health and risk indicators.
 
-## 2. Technology Stack
+It collects OS-level metrics (CPU, RAM, disk, network, processes), cleans and validates them, engineers features, scores unusual behavior with machine learning, and visualizes everything in an interactive **Streamlit** dashboard.
 
-| Area                 | Technology        |
-| -------------------- | ----------------- |
-| Programming language | Python 3.12+      |
-| System metrics       | `psutil`          |
-| Machine learning     | `scikit-learn`    |
-| Data processing      | `numpy`, `pandas` |
-| Dashboard            | `Streamlit`       |
-| Visualizations       | `Plotly`          |
-| Database             | SQLite            |
-| Model serialization  | `joblib`          |
-| Configuration        | `python-dotenv`   |
-| Testing              | `pytest`          |
+It also ships with **deterministic simulation scenarios**, so you can demonstrate how the system reacts to CPU spikes, memory pressure, or disk saturation **without stressing your real machine**.
 
-## 3. Application Architecture
+## 📸 Preview
 
-The application is organized into modular components.
+<!-- Add your screenshots to docs/screenshots/ and update the paths below -->
+<div align="center">
+
+| System Overview | Health & Risk Analysis |
+| :---: | :---: |
+| ![Overview](docs/screenshots/overview.png) | ![Health](docs/screenshots/health.png) |
+
+| Historical Telemetry | Simulation & Diagnostics |
+| :---: | :---: |
+| ![History](docs/screenshots/history.png) | ![Simulation](docs/screenshots/simulation.png) |
+
+</div>
+
+## ✨ Features
+
+| | Feature | Description |
+| :-: | --- | --- |
+| 📡 | **Telemetry collection** | CPU, memory, disk, network activity, and running processes via `psutil` |
+| 🧹 | **Validation & cleaning** | Handles missing, invalid, and non-finite metric values |
+| 🧮 | **Feature engineering** | Rolling statistics, deltas between samples, process usage, and time indicators |
+| 🗄️ | **Historical storage** | Metrics, feature vectors, and validation records persisted in SQLite |
+| 🤖 | **Anomaly detection** | Isolation Forest flags telemetry that differs from the learned baseline |
+| 💯 | **Health score (0–100)** | Deterministic score from anomaly and resource-utilization penalties |
+| 🚦 | **Risk categories** | Normal · Low · Moderate · High · Critical |
+| 📊 | **Interactive dashboard** | Live metrics, trends, anomaly records, and database inspection |
+| ⏱️ | **Live & background monitoring** | One-off snapshots or periodic background collection |
+| 🧪 | **Safe simulation** | Synthetic CPU, memory, disk, network, combined-pressure, and baseline scenarios |
+| 🔍 | **Explainable diagnostics** | Evidence-based suggestions tied to observed metrics |
+| 🩺 | **Operational status** | Component states, worker activity, and telemetry freshness |
+| 📤 | **CSV exports** | Download monitoring and diagnostic data for offline analysis |
+| 💾 | **Model management** | Save/load artifacts with feature-schema validation and a heuristic fallback |
+| ✅ | **Automated testing** | 237 passing tests across the core pipeline |
+
+## 🏗️ Architecture
+
+### Data flow
+
+```mermaid
+flowchart TD
+    A[🖥️ Host Operating System] --> B[📡 Metric Collectors]
+    B --> C[🧹 Validation & Preprocessing]
+    C --> D[🧮 Feature Engineering]
+    D --> E[(🗄️ SQLite Historical Storage)]
+    D --> F[🤖 Anomaly Detection & Health Analysis]
+    F --> G[🚦 Risk Categorization & Diagnostics]
+    G --> H[📊 Streamlit Dashboard]
+    G --> I[📤 CSV Exports]
+    E --> H
+```
+
+### Project structure
 
 ```text
 AI-Based-Server-Health-Monitoring/
@@ -78,230 +108,159 @@ AI-Based-Server-Health-Monitoring/
 └── README.md
 ```
 
-### Data flow
+## 🧰 Tech Stack
 
-```text
-Host Operating System
-        |
-        v
-Metric Collectors
-        |
-        v
-Validation and Preprocessing
-        |
-        v
-Feature Engineering
-        |
-        +--------------------> SQLite Historical Storage
-        |
-        v
-Anomaly Detection and Health Analysis
-        |
-        v
-Risk Categorization and Diagnostics
-        |
-        v
-Streamlit Dashboard and CSV Exports
-```
+| Area | Technology |
+| --- | --- |
+| Language | Python 3.12+ |
+| System metrics | `psutil` |
+| Machine learning | `scikit-learn` |
+| Data processing | `numpy`, `pandas` |
+| Dashboard | `Streamlit` |
+| Visualizations | `Plotly` |
+| Database | SQLite |
+| Model serialization | `joblib` |
+| Configuration | `python-dotenv` |
+| Testing | `pytest` |
 
-## 4. Metrics and Analysis
+## 🚀 Quick Start
 
-### Collected metrics
-
-- **CPU:** Overall utilization and core information.
-- **Memory:** Total, used, available memory, and utilization.
-- **Disk:** Total, used, and free storage, along with utilization.
-- **Network:** Bytes sent and received, plus throughput.
-- **Processes:** Process count and resource usage of top processes.
-
-### Feature engineering
-
-The preprocessing pipeline creates a numerical feature vector. Features include current resource utilization, changes between samples, rolling-window statistics, process usage, time indicators, and flags for missing metric domains.
-
-The exact feature schema is defined by the implementation and must remain consistent with the model artifacts.
-
-### Machine learning and risk analysis
-
-The application uses an Isolation Forest model to identify telemetry that differs from patterns represented in the training data. Its anomaly score is presented separately from the health score and risk category.
-
-The health score is a deterministic indicator based on configured anomaly and resource-utilization penalties. Risk categories summarize current observed conditions using configured thresholds.
-
-These outputs indicate observed system behavior. They are **not calibrated probabilities of future failure**.
-
-## 5. Simulation and Diagnostics
-
-The dashboard includes deterministic synthetic scenarios intended for demonstrations and regression testing. Available scenarios may include:
-
-- CPU spike
-- Memory leak or memory pressure
-- Disk saturation
-- Network saturation
-- Combined resource pressure
-- Normal baseline
-
-The simulation produces synthetic telemetry for the application's analysis pipeline. It does not intentionally exhaust real host resources or inject operating-system faults.
-
-Diagnostic recommendations are based on available metric evidence and scenario context. They are troubleshooting guidance, not proof of a root cause.
-
-## 6. Dashboard
-
-The Streamlit dashboard provides the following views:
-
-- **System Overview:** Current system status and CPU, memory, disk, network, and process metrics.
-- **Health & Risk Analysis:** Health score, anomaly score, risk category, and score breakdown.
-- **Real-Time Monitoring:** On-demand snapshots and background monitoring controls.
-- **Historical Telemetry:** Charts of stored metrics over selectable time ranges.
-- **Anomaly Audit Log:** Historical anomaly scores and risk categories.
-- **Simulation and Diagnostics:** Run synthetic scenarios and inspect diagnostic evidence and recommendations.
-- **Operational Status:** Inspect component status, worker state, and telemetry freshness where available.
-- **CSV Export:** Download supported records for offline analysis.
-- **Database Inspection:** Record counts, sample timestamps, database size, and recent records.
-
-Displayed status and freshness depend on collector and worker activity. An idle worker or stale telemetry may indicate that monitoring has not recently collected a sample.
-
-## 7. Requirements
-
-- Python 3.12 or newer
-- Windows (the current project setup is Windows-focused)
-- Git (optional, for cloning the repository)
-
-## 8. Installation
-
-### Step 1: Clone the repository
+**Requirements:** Python 3.12+ · Windows (current setup is Windows-focused) · Git (optional)
 
 ```powershell
+# 1. Clone the repository
 git clone https://github.com/andhony07/AI-Based-Server-Health-Monitoring.git
 cd AI-Based-Server-Health-Monitoring
-```
 
-### Step 2: Create and activate a virtual environment
-
-```powershell
+# 2. Create and activate a virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
 
-### Step 3: Install dependencies
-
-```powershell
+# 3. Install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-```
 
-### Step 4: Create a local environment file
-
-```powershell
+# 4. Create your local environment file
 Copy-Item .env.example .env
-```
 
-Edit `.env` if you need to change the default application settings. Do not add secrets or machine-specific sensitive information to version control.
-
-## 9. Usage
-
-### Launch the Streamlit dashboard
-
-From the project root, run:
-
-```powershell
+# 5. Launch the dashboard
 python -m streamlit run app/dashboard/dashboard_main.py
 ```
 
-Open the local URL shown in the terminal. Streamlit commonly uses:
+Then open **http://localhost:8501** in your browser.
 
-```text
-http://localhost:8501
-```
+> [!TIP]
+> Edit `.env` to change defaults. Never commit secrets or machine-specific sensitive information.
 
-### Alternative dashboard entry point
+### Command reference
 
-If supported by the current `run.py` configuration, the dashboard can also be launched with:
+| Goal | Command |
+| --- | --- |
+| Launch dashboard | `python -m streamlit run app/dashboard/dashboard_main.py` |
+| Launch dashboard (alternative, if supported by `run.py`) | `python run.py --dashboard` |
+| Continuous monitoring (stop with `Ctrl+C`) | `python run.py` |
+| Capture one snapshot | `python run.py --single-shot` |
+| Train the anomaly model | `python run.py --train` |
+| Run the tests | `pytest` |
 
-```powershell
-python run.py --dashboard
-```
+> Training uses historical feature vectors stored in SQLite, so a sufficient number of valid samples is required first.
 
-### Start continuous monitoring from the command line
+## 📊 Dashboard
 
-```powershell
-python run.py
-```
+| View | What you get |
+| --- | --- |
+| 🏠 **System Overview** | Current status plus CPU, memory, disk, network, and process metrics |
+| ❤️ **Health & Risk Analysis** | Health score, anomaly score, risk category, and score breakdown |
+| ⏱️ **Real-Time Monitoring** | On-demand snapshots and background monitoring controls |
+| 📈 **Historical Telemetry** | Stored metrics over selectable time ranges |
+| 🚨 **Anomaly Audit Log** | Historical anomaly scores and risk categories |
+| 🧪 **Simulation & Diagnostics** | Run synthetic scenarios and inspect evidence and recommendations |
+| 🩺 **Operational Status** | Component status, worker state, and telemetry freshness |
+| 📤 **CSV Export** | Download supported records for offline analysis |
+| 🗄️ **Database Inspection** | Record counts, sample timestamps, database size, recent records |
 
-Press `Ctrl+C` to stop the monitoring process.
+> An idle worker or stale telemetry may simply mean monitoring has not recently collected a sample.
 
-### Capture one telemetry snapshot
+## 🧠 How the Analysis Works
 
-```powershell
-python run.py --single-shot
-```
+<details>
+<summary><b>📡 Collected metrics</b></summary>
 
-### Train the anomaly detection model
+- **CPU:** overall utilization and core information
+- **Memory:** total, used, available, and utilization
+- **Disk:** total, used, free, and utilization
+- **Network:** bytes sent/received and throughput
+- **Processes:** process count and resource usage of top processes
 
-```powershell
-python run.py --train
-```
+</details>
 
-The training workflow uses historical feature vectors stored in SQLite. A sufficient number of valid samples is required before training can proceed.
+<details>
+<summary><b>🧮 Feature engineering</b></summary>
 
-### Run the tests
+The preprocessing pipeline builds a numerical feature vector from current utilization, changes between samples, rolling-window statistics, process usage, time indicators, and flags for missing metric domains. The exact schema is defined by the implementation and must stay consistent with the saved model artifacts.
 
-```powershell
-pytest
-```
+</details>
 
-The latest reported test run completed with **237 passed tests**. Run the command above to verify the current repository state. The test count may change as tests are added or modified.
+<details>
+<summary><b>🤖 Machine learning & risk analysis</b></summary>
 
-## 10. Data Storage
+An **Isolation Forest** identifies telemetry that differs from patterns in the training data. Its anomaly score is shown separately from the **health score** (a deterministic indicator based on configured penalties) and the **risk category** (configured thresholds over current conditions).
 
-Telemetry is stored locally in SQLite, by default under:
+These outputs describe observed behavior. They are **not** calibrated probabilities of future failure.
 
-```text
-data/system_metrics.db
-```
+</details>
 
-The database stores system metric snapshots, engineered feature vectors, and preprocessing validation records. The application uses transactions to keep related records consistent and supports retention cleanup.
+## 🧪 Simulation & Diagnostics
 
-The database is local to the machine running the application; it is not a distributed storage system.
+Deterministic synthetic scenarios for demos and regression testing:
 
-To inspect the number of collected samples, if the database schema contains the `system_metrics` table, run:
+`CPU spike` · `Memory pressure` · `Disk saturation` · `Network saturation` · `Combined resource pressure` · `Normal baseline`
+
+Simulation feeds synthetic telemetry into the analysis pipeline. It **does not** exhaust real host resources or inject OS faults. Diagnostic recommendations are troubleshooting guidance based on available evidence, not proof of a root cause.
+
+## 💾 Data Storage
+
+Telemetry is stored locally in SQLite (default: `data/system_metrics.db`). It holds metric snapshots, engineered feature vectors, and preprocessing validation records. Transactions keep related records consistent, and retention cleanup is supported. The database is local to the machine running the app.
+
+<details>
+<summary><b>Check how many samples you have collected</b></summary>
 
 ```powershell
 python -c "import sqlite3; conn = sqlite3.connect('data/system_metrics.db'); print('Samples:', conn.execute('SELECT COUNT(*) FROM system_metrics').fetchone()[0]); conn.close()"
 ```
 
-## 11. Machine Learning Scope and Limitations
+</details>
 
-- Isolation Forest identifies telemetry that differs from patterns represented in the training data.
-- The health score is a deterministic indicator based on anomaly and resource-utilization penalties.
-- Risk categories summarize current observed conditions using configured thresholds.
-- If a trained model is unavailable or historical data is insufficient, the application may use a heuristic fallback where implemented.
-- Synthetic simulation scenarios are useful for demonstrations and software testing but do not represent authentic hardware-failure events.
-- The project does not establish a validated probability or time-to-failure estimate from labeled real-world failures.
+## ⚙️ Configuration
 
-A supervised failure-prediction model would require suitable labeled data, a defined prediction horizon, and evaluation that avoids temporal data leakage. Its performance would need to be evaluated on representative data that was not used for training.
+Settings live in `.env` (see `.env.example`): application metadata, logging, collection intervals, process limits, preprocessing, and database behavior.
 
-## 12. Testing and Validation
-
-Run the complete test suite from the project root:
+## ✅ Testing
 
 ```powershell
 pytest
 ```
 
-The latest reported run completed with **237 passing tests**. The suite includes tests for configuration, metric collectors, preprocessing, database operations, machine learning, dashboard services, simulation, diagnostics, operational status, CSV export, and integration behavior.
+The latest reported run: **237 passed**. Coverage spans configuration, collectors, preprocessing, database, machine learning, dashboard services, simulation, diagnostics, operational status, CSV export, and integration behavior. Tests verify software behavior; they do not demonstrate predictive accuracy on real hardware failures.
 
-Tests help verify software behavior. They do not, by themselves, demonstrate predictive accuracy on real-world hardware failures or guarantee production readiness.
+## ⚠️ Scope & Limitations
 
-## 13. Configuration
+- Isolation Forest flags deviations from the training baseline; it does not predict failures.
+- The health score and risk categories reflect *current observed conditions*.
+- Without a trained model or enough history, a heuristic fallback may be used where implemented.
+- Simulated scenarios are for demonstration and testing, not authentic hardware-failure events.
+- No validated probability or time-to-failure is estimated, since no labeled real-world failure data is used.
 
-Application settings can be customized through the `.env` file. The provided `.env.example` includes settings for application metadata, logging, metric collection intervals, process limits, preprocessing, and database behavior.
+A supervised failure-prediction model would need suitable labeled data, a defined prediction horizon, and evaluation on held-out data that avoids temporal leakage.
 
-Do not commit secrets or machine-specific sensitive information to the repository.
+## 👤 Author
 
-## 14. Future Improvements
+**Andhony Saviyar S** · [@andhony07](https://github.com/andhony07)
 
-- Evaluate the system with longer-running telemetry collected across different workloads.
-- Add support for importing labeled failure-event datasets.
-- Develop and validate supervised failure prediction when suitable ground-truth data is available.
-- Add remote-host monitoring and centralized storage if multi-machine monitoring is required.
-- Improve alert delivery and configurable notification thresholds.
-- Add further operational monitoring and end-to-end tests for supported deployment environments.
+---
+
+<div align="center">
+
+⭐ If you find this project useful, consider giving it a star!
+
+</div>
