@@ -13,6 +13,7 @@ from app.dashboard.utils.formatting import (
     get_resource_status,
 )
 from app.database.models import SystemMetricRecord
+from app.dashboard.utils.theme import get_theme_tokens
 from app.models.metrics import SystemMetrics
 
 
@@ -100,6 +101,8 @@ def adapt_telemetry_to_record(
 def render_metric_cards(
     metric: Optional[Union[SystemMetricRecord, SystemMetrics, dict[str, Any]]],
     is_simulated: bool = False,
+    theme: Optional[str] = None,
+    **kwargs: Any,
 ) -> None:
     """Render executive metric cards for CPU, Memory, Disk, Network, and Processes.
 
@@ -108,7 +111,11 @@ def render_metric_cards(
     Args:
         metric: Most recent SystemMetricRecord, SystemMetrics, or None.
         is_simulated: Whether this telemetry represents a synthetic simulation.
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional legacy or forward-compatible keyword arguments.
     """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
     record = adapt_telemetry_to_record(metric)
 
     if record is None:

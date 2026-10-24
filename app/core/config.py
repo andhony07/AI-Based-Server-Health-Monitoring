@@ -7,7 +7,7 @@ dataclasses, and environment variable support via python-dotenv.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final, Optional
 
@@ -100,6 +100,16 @@ class Settings:
     dashboard_refresh_interval: int = 5
     dashboard_historical_limit: int = 500
     dashboard_port: int = 8501
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+    cors_origins: list[str] = field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ]
+    )
 
     def __post_init__(self) -> None:
         """Validate configuration settings values."""
@@ -513,6 +523,30 @@ def load_config(
             f"Invalid DASHBOARD_PORT: '{raw_dash_port}'. Must be an integer."
         ) from err
 
+    # FastAPI REST backend settings
+    api_host = str(overrides.get("api_host", os.getenv("API_HOST", "0.0.0.0")))
+    raw_api_port = overrides.get("api_port", os.getenv("API_PORT", "8000"))
+    try:
+        api_port = int(raw_api_port)  # type: ignore[arg-type]
+    except (TypeError, ValueError) as err:
+        raise ValueError(
+            f"Invalid API_PORT: '{raw_api_port}'. Must be an integer."
+        ) from err
+
+    raw_cors = overrides.get("cors_origins", os.getenv("CORS_ORIGINS"))
+    if raw_cors is not None:
+        if isinstance(raw_cors, list):
+            cors_origins = [str(x).strip() for x in raw_cors]
+        else:
+            cors_origins = [x.strip() for x in str(raw_cors).split(",") if x.strip()]
+    else:
+        cors_origins = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ]
+
     return Settings(
         app_name=app_name,
         app_version=app_version,
@@ -547,6 +581,9 @@ def load_config(
         dashboard_refresh_interval=dashboard_refresh_interval,
         dashboard_historical_limit=dashboard_historical_limit,
         dashboard_port=dashboard_port,
+        api_host=api_host,
+        api_port=api_port,
+        cors_origins=cors_origins,
     )
 
 

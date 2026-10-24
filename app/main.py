@@ -160,6 +160,20 @@ def main(
             db_service.close()
             return subprocess.call(cmd)
 
+        # Check for API server mode CLI invocation
+        if "--api" in sys.argv or "-a" in sys.argv:
+            import uvicorn
+
+            logger.info("Launching FastAPI REST Server on %s:%d...", settings.api_host, settings.api_port)
+            db_service.close()
+            uvicorn.run(
+                "app.api.main:app",
+                host=settings.api_host,
+                port=settings.api_port,
+                reload=False,
+            )
+            return 0
+
         # Detect single-shot or test execution mode
         is_test_env = "pytest" in sys.modules or "PYTEST_CURRENT_TEST" in os.environ
         cli_single_shot = "--single-shot" in sys.argv or "--oneshot" in sys.argv

@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from app.database.models import SystemMetricRecord
+from app.dashboard.utils.theme import get_theme_tokens
 from app.ml.models import RiskCategory
 
 
@@ -15,6 +16,8 @@ def build_health_gauge(
     health_score: Optional[float],
     risk_category: Union[RiskCategory, str] = "Normal",
     title: str = "System Health Score",
+    theme: Optional[str] = None,
+    **kwargs: Any,
 ) -> go.Figure:
     """Construct an interactive Plotly radial gauge displaying system health (0-100).
 
@@ -22,10 +25,14 @@ def build_health_gauge(
         health_score: Float health score between 0.0 and 100.0 or None.
         risk_category: Associated risk tier.
         title: Gauge header title.
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional legacy or forward-compatible keyword arguments.
 
     Returns:
         Configured plotly.graph_objects.Figure.
     """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
     val = float(health_score) if health_score is not None else 0.0
     display_text = f"{val:.1f}" if health_score is not None else "N/A"
 
@@ -50,19 +57,19 @@ def build_health_gauge(
             mode="gauge+number",
             value=val,
             number={"suffix": " / 100", "font": {"size": 28, "color": bar_color}},
-            title={"text": f"<b>{title}</b><br><span style='font-size:13px; color:#6B7280;'>Risk: {cat_name}</span>", "font": {"size": 16}},
+            title={"text": f"<b>{title}</b><br><span style='font-size:13px; color:{tokens.text_secondary};'>Risk: {cat_name}</span>", "font": {"size": 16, "color": tokens.chart_font_color}},
             gauge={
-                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": "#9CA3AF"},
+                "axis": {"range": [0, 100], "tickwidth": 1, "tickcolor": tokens.chart_axis_color},
                 "bar": {"color": bar_color, "thickness": 0.3},
-                "bgcolor": "#F3F4F6",
+                "bgcolor": tokens.chart_gauge_bg,
                 "borderwidth": 1,
-                "bordercolor": "#E5E7EB",
+                "bordercolor": tokens.chart_gauge_border,
                 "steps": [
-                    {"range": [0, 25], "color": "rgba(239, 68, 68, 0.15)"},    # Critical Red
-                    {"range": [25, 45], "color": "rgba(249, 115, 22, 0.15)"},  # High Orange
-                    {"range": [45, 65], "color": "rgba(245, 158, 11, 0.15)"},  # Moderate Amber
-                    {"range": [65, 80], "color": "rgba(59, 130, 246, 0.15)"},  # Low Blue
-                    {"range": [80, 100], "color": "rgba(16, 185, 129, 0.15)"}, # Normal Green
+                    {"range": [0, 25], "color": "rgba(239, 68, 68, 0.20)"},    # Critical Red
+                    {"range": [25, 45], "color": "rgba(249, 115, 22, 0.20)"},  # High Orange
+                    {"range": [45, 65], "color": "rgba(245, 158, 11, 0.20)"},  # Moderate Amber
+                    {"range": [65, 80], "color": "rgba(59, 130, 246, 0.20)"},  # Low Blue
+                    {"range": [80, 100], "color": "rgba(16, 185, 129, 0.20)"}, # Normal Green
                 ],
                 "threshold": {
                     "line": {"color": "#EF4444", "width": 3},
@@ -76,8 +83,8 @@ def build_health_gauge(
     fig.update_layout(
         height=260,
         margin=dict(l=25, r=25, t=50, b=20),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif"),
+        paper_bgcolor=tokens.chart_paper_bg,
+        font=dict(family="Inter, sans-serif", color=tokens.chart_font_color),
     )
     return fig
 
@@ -86,6 +93,8 @@ def build_anomaly_gauge(
     anomaly_score: Optional[float],
     is_anomaly: bool = False,
     title: str = "Calibrated Anomaly Score",
+    theme: Optional[str] = None,
+    **kwargs: Any,
 ) -> go.Figure:
     """Construct an indicator gauge for the calibrated anomaly score (0.0 to 1.0).
 
@@ -93,10 +102,14 @@ def build_anomaly_gauge(
         anomaly_score: Score between 0.0 and 1.0.
         is_anomaly: Boolean flag indicating if anomaly boundary was exceeded.
         title: Gauge header title.
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional legacy or forward-compatible keyword arguments.
 
     Returns:
         Configured plotly.graph_objects.Figure.
     """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
     val = float(anomaly_score) if anomaly_score is not None else 0.0
     status_label = "Anomaly Detected" if is_anomaly else "Nominal Behavior"
     status_color = "#EF4444" if is_anomaly else "#10B981"
@@ -106,18 +119,18 @@ def build_anomaly_gauge(
             mode="gauge+number",
             value=val,
             number={"valueformat": ".3f", "font": {"size": 28, "color": status_color}},
-            title={"text": f"<b>{title}</b><br><span style='font-size:13px; color:{status_color};'>{status_label}</span>", "font": {"size": 16}},
+            title={"text": f"<b>{title}</b><br><span style='font-size:13px; color:{status_color};'>{status_label}</span>", "font": {"size": 16, "color": tokens.chart_font_color}},
             gauge={
-                "axis": {"range": [0.0, 1.0], "tickwidth": 1, "tickcolor": "#9CA3AF"},
+                "axis": {"range": [0.0, 1.0], "tickwidth": 1, "tickcolor": tokens.chart_axis_color},
                 "bar": {"color": status_color, "thickness": 0.3},
-                "bgcolor": "#F3F4F6",
+                "bgcolor": tokens.chart_gauge_bg,
                 "borderwidth": 1,
-                "bordercolor": "#E5E7EB",
+                "bordercolor": tokens.chart_gauge_border,
                 "steps": [
-                    {"range": [0.0, 0.35], "color": "rgba(16, 185, 129, 0.15)"},
-                    {"range": [0.35, 0.55], "color": "rgba(59, 130, 246, 0.15)"},
-                    {"range": [0.55, 0.75], "color": "rgba(245, 158, 11, 0.15)"},
-                    {"range": [0.75, 1.0], "color": "rgba(239, 68, 68, 0.2)"},
+                    {"range": [0.0, 0.35], "color": "rgba(16, 185, 129, 0.20)"},
+                    {"range": [0.35, 0.55], "color": "rgba(59, 130, 246, 0.20)"},
+                    {"range": [0.55, 0.75], "color": "rgba(245, 158, 11, 0.20)"},
+                    {"range": [0.75, 1.0], "color": "rgba(239, 68, 68, 0.25)"},
                 ],
                 "threshold": {
                     "line": {"color": "#DC2626", "width": 3},
@@ -131,21 +144,29 @@ def build_anomaly_gauge(
     fig.update_layout(
         height=260,
         margin=dict(l=25, r=25, t=50, b=20),
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif"),
+        paper_bgcolor=tokens.chart_paper_bg,
+        font=dict(family="Inter, sans-serif", color=tokens.chart_font_color),
     )
     return fig
 
 
-def build_resource_breakdown_bar(metric: Optional[Any]) -> go.Figure:
+def build_resource_breakdown_bar(
+    metric: Optional[Any],
+    theme: Optional[str] = None,
+    **kwargs: Any,
+) -> go.Figure:
     """Build a comparative bar chart comparing CPU, RAM, and Disk utilization percentages.
 
     Args:
         metric: Latest SystemMetricRecord or SystemMetrics instance.
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional legacy or forward-compatible keyword arguments.
 
     Returns:
         Plotly Figure.
     """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
     labels = ["CPU", "Memory (RAM)", "Disk Storage"]
 
     cpu_pct = 0.0
@@ -184,24 +205,25 @@ def build_resource_breakdown_bar(metric: Optional[Any]) -> go.Figure:
             y=values,
             text=[f"{v:.1f}%" for v in values],
             textposition="auto",
-            marker=dict(color=colors, line=dict(color="#374151", width=1)),
+            textfont=dict(color=tokens.chart_font_color),
+            marker=dict(color=colors, line=dict(color=tokens.border_color, width=1)),
             width=0.45,
         )
     )
 
     # Reference lines for warning (80%) and critical (95%)
-    fig.add_hline(y=80, line_dash="dot", line_color="#F59E0B", annotation_text="Warning (80%)", annotation_position="top right")
-    fig.add_hline(y=95, line_dash="dash", line_color="#EF4444", annotation_text="Critical (95%)", annotation_position="top right")
+    fig.add_hline(y=80, line_dash="dot", line_color="#F59E0B", annotation_text="Warning (80%)", annotation_position="top right", annotation_font=dict(color="#F59E0B"))
+    fig.add_hline(y=95, line_dash="dash", line_color="#EF4444", annotation_text="Critical (95%)", annotation_position="top right", annotation_font=dict(color="#EF4444"))
 
     fig.update_layout(
-        title="<b>Current Hardware Resource Saturation</b>",
-        yaxis=dict(title="Utilization (%)", range=[0, 105]),
-        xaxis=dict(title=""),
+        title=dict(text="<b>Current Hardware Resource Saturation</b>", font=dict(color=tokens.chart_font_color)),
+        yaxis=dict(title="Utilization (%)", range=[0, 105], showgrid=True, gridcolor=tokens.chart_grid_color, color=tokens.chart_font_color),
+        xaxis=dict(title="", color=tokens.chart_font_color),
         height=320,
         margin=dict(l=40, r=40, t=50, b=30),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif"),
+        paper_bgcolor=tokens.chart_paper_bg,
+        plot_bgcolor=tokens.chart_plot_bg,
+        font=dict(family="Inter, sans-serif", color=tokens.chart_font_color),
     )
     return fig
 
@@ -209,16 +231,22 @@ def build_resource_breakdown_bar(metric: Optional[Any]) -> go.Figure:
 def build_multi_metric_timeseries(
     records: list[SystemMetricRecord],
     selected_metrics: Optional[list[str]] = None,
+    theme: Optional[str] = None,
+    **kwargs: Any,
 ) -> go.Figure:
     """Construct an interactive multi-metric time-series line chart.
 
     Args:
         records: Chronologically sorted list of SystemMetricRecord instances.
         selected_metrics: List of metric series to plot. Defaults to CPU, RAM, Disk.
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional legacy or forward-compatible keyword arguments.
 
     Returns:
         Plotly Figure.
     """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
     if not records:
         fig = go.Figure()
         fig.add_annotation(
@@ -228,9 +256,9 @@ def build_multi_metric_timeseries(
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=14, color="#9CA3AF"),
+            font=dict(size=14, color=tokens.text_muted),
         )
-        fig.update_layout(height=380, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig.update_layout(height=380, paper_bgcolor=tokens.chart_paper_bg, plot_bgcolor=tokens.chart_plot_bg, font=dict(color=tokens.chart_font_color))
         return fig
 
     metrics_to_plot = selected_metrics or [
@@ -250,12 +278,12 @@ def build_multi_metric_timeseries(
     timestamps = [r.timestamp for r in records]
 
     colors = {
-        "CPU Utilization (%)": "#3B82F6",    # Blue
-        "RAM Utilization (%)": "#8B5CF6",    # Purple
-        "Disk Utilization (%)": "#10B981",   # Green
-        "Network TX (KB/s)": "#F59E0B",      # Amber
-        "Network RX (KB/s)": "#EC4899",      # Pink
-        "Active Processes": "#6B7280",       # Gray
+        "CPU Utilization (%)": "#38BDF8" if tokens.mode == "dark" else "#2563EB",
+        "RAM Utilization (%)": "#A855F7" if tokens.mode == "dark" else "#7C3AED",
+        "Disk Utilization (%)": "#10B981",
+        "Network TX (KB/s)": "#F59E0B",
+        "Network RX (KB/s)": "#EC4899",
+        "Active Processes": "#94A3B8" if tokens.mode == "dark" else "#64748B",
     }
 
     if "CPU Utilization (%)" in metrics_to_plot:
@@ -345,33 +373,41 @@ def build_multi_metric_timeseries(
             fig.add_trace(trace_proc)
 
     fig.update_layout(
-        title="<b>Historical System Telemetry Over Time</b>",
-        xaxis=dict(title="Timestamp (UTC)", showgrid=True, gridcolor="#E5E7EB"),
-        yaxis=dict(title="Utilization (%)", range=[0, 105], showgrid=True, gridcolor="#E5E7EB"),
+        title=dict(text="<b>Historical System Telemetry Over Time</b>", font=dict(color=tokens.chart_font_color)),
+        xaxis=dict(title="Timestamp (UTC)", showgrid=True, gridcolor=tokens.chart_grid_color, color=tokens.chart_font_color),
+        yaxis=dict(title="Utilization (%)", range=[0, 105], showgrid=True, gridcolor=tokens.chart_grid_color, color=tokens.chart_font_color),
         height=420,
         hovermode="x unified",
         margin=dict(l=40, r=40, t=50, b=40),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        font=dict(family="Inter, sans-serif"),
+        paper_bgcolor=tokens.chart_paper_bg,
+        plot_bgcolor=tokens.chart_plot_bg,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=tokens.chart_font_color)),
+        font=dict(family="Inter, sans-serif", color=tokens.chart_font_color),
     )
 
     if has_throughput:
-        fig.update_yaxes(title_text="Throughput (KB/s) / Count", secondary_y=True, showgrid=False)
+        fig.update_yaxes(title_text="Throughput (KB/s) / Count", secondary_y=True, showgrid=False, color=tokens.chart_font_color)
 
     return fig
 
 
-def build_anomaly_scatter_chart(anomalies: list[dict[str, Any]]) -> go.Figure:
+def build_anomaly_scatter_chart(
+    anomalies: list[dict[str, Any]],
+    theme: Optional[str] = None,
+    **kwargs: Any,
+) -> go.Figure:
     """Build a scatter chart displaying anomaly scores and risk tiers across historical samples.
 
     Args:
         anomalies: List of anomaly dictionaries produced by DashboardService.get_historical_anomalies().
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional legacy or forward-compatible keyword arguments.
 
     Returns:
         Plotly Figure.
     """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
     if not anomalies:
         fig = go.Figure()
         fig.add_annotation(
@@ -381,9 +417,9 @@ def build_anomaly_scatter_chart(anomalies: list[dict[str, Any]]) -> go.Figure:
             x=0.5,
             y=0.5,
             showarrow=False,
-            font=dict(size=14, color="#9CA3AF"),
+            font=dict(size=14, color=tokens.text_muted),
         )
-        fig.update_layout(height=360, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig.update_layout(height=360, paper_bgcolor=tokens.chart_paper_bg, plot_bgcolor=tokens.chart_plot_bg, font=dict(color=tokens.chart_font_color))
         return fig
 
     timestamps = [a["timestamp"] for a in anomalies]
@@ -418,8 +454,8 @@ def build_anomaly_scatter_chart(anomalies: list[dict[str, Any]]) -> go.Figure:
             marker=dict(
                 size=sizes,
                 color=point_colors,
-                opacity=0.85,
-                line=dict(color="#1F2937", width=1),
+                opacity=0.88,
+                line=dict(color=tokens.border_color, width=1),
             ),
             text=hover_texts,
             hoverinfo="text",
@@ -434,16 +470,152 @@ def build_anomaly_scatter_chart(anomalies: list[dict[str, Any]]) -> go.Figure:
         line_color="#EF4444",
         annotation_text="Decision Boundary (0.50)",
         annotation_position="bottom right",
+        annotation_font=dict(color="#EF4444"),
     )
 
     fig.update_layout(
-        title="<b>Historical Anomaly Evaluation Timeline</b>",
-        xaxis=dict(title="Timestamp (UTC)", showgrid=True, gridcolor="#E5E7EB"),
-        yaxis=dict(title="Calibrated Anomaly Score", range=[0.0, 1.05], showgrid=True, gridcolor="#E5E7EB"),
+        title=dict(text="<b>Historical Anomaly Evaluation Timeline</b>", font=dict(color=tokens.chart_font_color)),
+        xaxis=dict(title="Timestamp (UTC)", showgrid=True, gridcolor=tokens.chart_grid_color, color=tokens.chart_font_color),
+        yaxis=dict(title="Calibrated Anomaly Score", range=[0.0, 1.05], showgrid=True, gridcolor=tokens.chart_grid_color, color=tokens.chart_font_color),
         height=380,
         margin=dict(l=40, r=40, t=50, b=40),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif"),
+        paper_bgcolor=tokens.chart_paper_bg,
+        plot_bgcolor=tokens.chart_plot_bg,
+        font=dict(family="Inter, sans-serif", color=tokens.chart_font_color),
+    )
+    return fig
+
+
+def build_simulation_comparison_bar(
+    baseline_metrics: Optional[Any],
+    simulated_metrics: Optional[Any],
+    scenario_name: str = "Simulated Scenario",
+    theme: Optional[str] = None,
+    **kwargs: Any,
+) -> go.Figure:
+    """Build a comparative grouped bar chart contrasting nominal baseline vs simulated telemetry.
+
+    Args:
+        baseline_metrics: Baseline SystemMetrics or SystemMetricRecord.
+        simulated_metrics: Simulated SystemMetrics or SystemMetricRecord.
+        scenario_name: Label for the simulated scenario trace.
+        theme: Optional active theme ('dark' or 'light').
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        Configured plotly.graph_objects.Figure.
+    """
+    active_mode = theme or kwargs.get("theme")
+    tokens = get_theme_tokens(active_mode)
+
+    def _extract_pcts(m: Optional[Any]) -> tuple[float, float, float]:
+        if m is None:
+            return 0.0, 0.0, 0.0
+        cpu = getattr(m, "cpu_percent", None)
+        if cpu is None and hasattr(m, "cpu") and m.cpu is not None:
+            cpu = getattr(m.cpu, "utilization_percent", 0.0)
+
+        ram = getattr(m, "memory_percent", None)
+        if ram is None and hasattr(m, "memory") and m.memory is not None:
+            ram = getattr(m.memory, "utilization_percent", 0.0)
+
+        disk = getattr(m, "disk_percent", None)
+        if disk is None and hasattr(m, "disk") and m.disk is not None:
+            disk = getattr(m.disk, "utilization_percent", 0.0)
+
+        return float(cpu or 0.0), float(ram or 0.0), float(disk or 0.0)
+
+    base_cpu, base_ram, base_disk = _extract_pcts(baseline_metrics)
+    sim_cpu, sim_ram, sim_disk = _extract_pcts(simulated_metrics)
+
+    subsystems = ["CPU Utilization", "Memory (RAM)", "Disk Storage"]
+    base_vals = [base_cpu, base_ram, base_disk]
+    sim_vals = [sim_cpu, sim_ram, sim_disk]
+
+    fig = go.Figure()
+
+    # Trace 1: Baseline Nominal
+    fig.add_trace(
+        go.Bar(
+            name="Nominal Baseline",
+            x=subsystems,
+            y=base_vals,
+            text=[f"{v:.1f}%" for v in base_vals],
+            textposition="auto",
+            textfont=dict(color=tokens.chart_font_color),
+            marker=dict(
+                color="rgba(56, 189, 248, 0.65)",  # Cyan
+                line=dict(color="#38BDF8", width=1.5),
+            ),
+            width=0.32,
+        )
+    )
+
+    # Trace 2: Simulated Scenario
+    sim_colors = [
+        "#EF4444" if v >= 90.0 else ("#F59E0B" if v >= 70.0 else "#10B981")
+        for v in sim_vals
+    ]
+    fig.add_trace(
+        go.Bar(
+            name=f"Simulated ({scenario_name})",
+            x=subsystems,
+            y=sim_vals,
+            text=[f"{v:.1f}%" for v in sim_vals],
+            textposition="auto",
+            textfont=dict(color=tokens.chart_font_color),
+            marker=dict(
+                color=sim_colors,
+                line=dict(color=tokens.border_color, width=1.5),
+            ),
+            width=0.32,
+        )
+    )
+
+    # Reference threshold lines
+    fig.add_hline(
+        y=80,
+        line_dash="dot",
+        line_color="#F59E0B",
+        annotation_text="Warning (80%)",
+        annotation_position="top right",
+        annotation_font=dict(color="#F59E0B", size=10),
+    )
+    fig.add_hline(
+        y=95,
+        line_dash="dash",
+        line_color="#EF4444",
+        annotation_text="Critical (95%)",
+        annotation_position="top right",
+        annotation_font=dict(color="#EF4444", size=10),
+    )
+
+    fig.update_layout(
+        title=dict(
+            text="<b>Baseline vs. Simulated Hardware Telemetry Comparison</b>",
+            font=dict(color=tokens.chart_font_color, size=15),
+        ),
+        barmode="group",
+        yaxis=dict(
+            title="Utilization (%)",
+            range=[0, 108],
+            showgrid=True,
+            gridcolor=tokens.chart_grid_color,
+            color=tokens.chart_font_color,
+        ),
+        xaxis=dict(title="", color=tokens.chart_font_color),
+        height=320,
+        margin=dict(l=40, r=40, t=50, b=30),
+        paper_bgcolor=tokens.chart_paper_bg,
+        plot_bgcolor=tokens.chart_plot_bg,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(color=tokens.chart_font_color),
+        ),
+        font=dict(family="Inter, sans-serif", color=tokens.chart_font_color),
     )
     return fig

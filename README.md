@@ -39,18 +39,18 @@ The project includes deterministic simulation scenarios to demonstrate how the a
 
 ## 2. Technology Stack
 
-| Area | Technology |
-|---|---|
-| Programming language | Python 3.12+ |
-| System metrics | `psutil` |
-| Machine learning | `scikit-learn` |
-| Data processing | `numpy`, `pandas` |
-| Dashboard | `Streamlit` |
-| Visualizations | `Plotly` |
-| Database | SQLite |
-| Model serialization | `joblib` |
-| Configuration | `python-dotenv` |
-| Testing | `pytest` |
+| Area                 | Technology        |
+| -------------------- | ----------------- |
+| Programming language | Python 3.12+      |
+| System metrics       | `psutil`          |
+| Machine learning     | `scikit-learn`    |
+| Data processing      | `numpy`, `pandas` |
+| Dashboard            | `Streamlit`       |
+| Visualizations       | `Plotly`          |
+| Database             | SQLite            |
+| Model serialization  | `joblib`          |
+| Configuration        | `python-dotenv`   |
+| Testing              | `pytest`          |
 
 ## 3. Application Architecture
 

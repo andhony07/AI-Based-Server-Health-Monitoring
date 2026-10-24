@@ -12,6 +12,7 @@ from app.dashboard.charts.builders import (
     build_health_gauge,
     build_multi_metric_timeseries,
     build_resource_breakdown_bar,
+    build_simulation_comparison_bar,
 )
 from app.database.models import SystemMetricRecord
 from app.ml.models import RiskCategory
@@ -164,3 +165,39 @@ class TestDashboardChartBuilders:
         assert list(scatter.y) == [0.15, 0.88]
         # Colors should map Normal -> Green, High -> Orange
         assert list(scatter.marker.color) == ["#10B981", "#F97316"]
+
+    def test_build_simulation_comparison_bar(self) -> None:
+        """Verify baseline vs simulated telemetry comparison bar chart."""
+        now = datetime.now(timezone.utc)
+        base_record = SystemMetricRecord(
+            id=1,
+            timestamp=now,
+            cpu_percent=18.5,
+            memory_percent=42.0,
+            disk_percent=45.0,
+        )
+        sim_record = SystemMetricRecord(
+            id=2,
+            timestamp=now,
+            cpu_percent=96.5,
+            memory_percent=48.0,
+            disk_percent=48.0,
+        )
+
+        fig = build_simulation_comparison_bar(base_record, sim_record, scenario_name="CPU Spike")
+        assert len(fig.data) == 2
+        trace_base = fig.data[0]
+        trace_sim = fig.data[1]
+
+        assert trace_base.name == "Nominal Baseline"
+        assert list(trace_base.y) == [18.5, 42.0, 45.0]
+
+        assert "Simulated (CPU Spike)" in trace_sim.name
+        assert list(trace_sim.y) == [96.5, 48.0, 48.0]
+        # High CPU (96.5) should be colored critical red
+        assert list(trace_sim.marker.color) == ["#EF4444", "#10B981", "#10B981"]
+
+        # Handle None gracefully
+        fig_none = build_simulation_comparison_bar(None, None)
+        assert len(fig_none.data) == 2
+        assert list(fig_none.data[0].y) == [0.0, 0.0, 0.0]

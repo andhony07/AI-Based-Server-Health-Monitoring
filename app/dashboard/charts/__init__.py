@@ -6,6 +6,7 @@ from app.dashboard.charts.builders import (
     build_health_gauge,
     build_multi_metric_timeseries,
     build_resource_breakdown_bar,
+    build_simulation_comparison_bar,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "build_resource_breakdown_bar",
     "build_multi_metric_timeseries",
     "build_anomaly_scatter_chart",
+    "build_simulation_comparison_bar",
 ]
