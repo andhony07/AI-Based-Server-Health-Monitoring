@@ -89,22 +89,25 @@ flowchart TD
 ```text
 AI-Based-Server-Health-Monitoring/
 ├── app/
-│   ├── core/             # Configuration and logging
-│   ├── models/           # Typed telemetry data models
-│   ├── collectors/       # CPU, memory, disk, network, and process metrics
-│   ├── preprocessing/    # Validation, cleaning, rolling statistics, features
-│   ├── database/         # SQLite schema, migrations, and repositories
-│   ├── ml/               # Anomaly detection, simulation, diagnostics
-│   ├── dashboard/        # Streamlit pages, charts, components, and services
-│   └── utils/            # Shared utilities
-├── data/                 # Local telemetry database and data directories
-├── models/               # Saved machine learning model artifacts
-├── logs/                 # Runtime logs
-├── docs/                 # Documentation and review rehearsal guide
-├── tests/                # Automated test suite
-├── .env.example          # Example environment configuration
-├── requirements.txt      # Python dependencies
-├── run.py                # Application command-line entry point
+│   ├── core/                 # Configuration and logging
+│   ├── models/               # Telemetry data models
+│   ├── collectors/           # System metrics collection
+│   ├── preprocessing/        # Data validation and feature engineering
+│   ├── database/             # SQLite persistence
+│   ├── ml/                   # ML, simulation, diagnostics
+│   ├── dashboard/            # Streamlit dashboard
+│   └── utils/                # Shared utilities
+├── frontend/                 # React + TypeScript frontend
+├── data/                     # Local telemetry database
+├── models/                   # ML model artifacts
+├── logs/                     # Application logs
+├── docs/
+│   └── screenshots/          # README dashboard screenshots
+├── tests/                    # Unit, integration and E2E tests
+├── .env.example              # Example configuration
+├── requirements.txt          # Python dependencies
+├── run.py                    # CLI entry point
+├── run_api.py                # Include only if this file starts FastAPI
 └── README.md
 ```
 
@@ -125,45 +128,83 @@ AI-Based-Server-Health-Monitoring/
 
 ## 🚀 Quick Start
 
-**Requirements:** Python 3.12+ · Windows (current setup is Windows-focused) · Git (optional)
+**Requirements:** Python 3.12+ · Node.js and npm · Windows (current setup is Windows-focused) · Git (optional)
+
+### 1. Clone the repository
 
 ```powershell
-# 1. Clone the repository
 git clone https://github.com/andhony07/AI-Based-Server-Health-Monitoring.git
 cd AI-Based-Server-Health-Monitoring
+```
 
-# 2. Create and activate a virtual environment
+### 2. Set up the Python environment
+
+```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
-# 3. Install dependencies
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+```
 
-# 4. Create your local environment file
+### 3. Configure environment variables
+
+```powershell
 Copy-Item .env.example .env
+```
 
-# 5. Launch the dashboard
+Edit `.env` if your configuration requires changes. Do not commit secrets.
+
+### 4. Launch the Streamlit dashboard
+
+From the project root:
+
+```powershell
 python -m streamlit run app/dashboard/dashboard_main.py
 ```
 
-Then open **http://localhost:8501** in your browser.
+Open **http://localhost:8501**.
 
-> [!TIP]
-> Edit `.env` to change defaults. Never commit secrets or machine-specific sensitive information.
+### 5. Launch the FastAPI backend
 
-### Command reference
+Open a second terminal at the project root, activate the virtual environment, and run:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn run_api:app --reload
+```
+
+The API is typically available at **http://127.0.0.1:8000**. Interactive API documentation is available at **http://127.0.0.1:8000/docs**.
+
+*The command assumes `run_api.py` exposes a FastAPI instance named `app`. Adjust it if your actual entry point differs.*
+
+### 6. Launch the React frontend
+
+Open a third terminal:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open the local URL printed by Vite in the terminal, commonly **http://localhost:5173**.
+
+*This assumes `frontend/package.json` defines a `dev` script and the frontend is configured to communicate with the FastAPI backend.*
+
+## 🛠️ Command Reference
 
 | Goal | Command |
 | --- | --- |
-| Launch dashboard | `python -m streamlit run app/dashboard/dashboard_main.py` |
-| Launch dashboard (alternative, if supported by `run.py`) | `python run.py --dashboard` |
-| Continuous monitoring (stop with `Ctrl+C`) | `python run.py` |
-| Capture one snapshot | `python run.py --single-shot` |
+| Launch Streamlit dashboard | `python -m streamlit run app/dashboard/dashboard_main.py` |
+| Launch FastAPI backend | `python -m uvicorn run_api:app --reload` |
+| Launch React frontend | `cd frontend; npm run dev` |
+| Install frontend dependencies | `cd frontend; npm install` |
+| Continuous monitoring | `python run.py` |
+| Capture one telemetry snapshot | `python run.py --single-shot` |
 | Train the anomaly model | `python run.py --train` |
-| Run the tests | `pytest` |
+| Run automated tests | `pytest` |
 
-> Training uses historical feature vectors stored in SQLite, so a sufficient number of valid samples is required first.
+> **Note:** The FastAPI and React commands depend on the actual backend entry point and frontend scripts. Verify them against the repository before publishing. Training uses historical feature vectors stored in SQLite, so sufficient valid samples are required.
 
 ## 📊 Dashboard
 
