@@ -100,6 +100,9 @@ def test_export_metrics_csv_headers_and_data(service_with_samples: DashboardServ
         "memory_available_mb",
         "memory_total_mb",
         "disk_percent",
+        "disk_active_percent",
+        "disk_read_bytes_per_sec",
+        "disk_write_bytes_per_sec",
         "disk_used_gb",
         "disk_free_gb",
         "disk_total_gb",
@@ -117,7 +120,7 @@ def test_export_metrics_csv_headers_and_data(service_with_samples: DashboardServ
     first_row = rows[1]
     assert first_row[0] == "1"
     assert first_row[2] == "20.0"
-    assert first_row[15] == "app_0"
+    assert first_row[18] == "app_0"
 
 
 def test_export_metrics_csv_empty_database(tmp_path: Path) -> None:

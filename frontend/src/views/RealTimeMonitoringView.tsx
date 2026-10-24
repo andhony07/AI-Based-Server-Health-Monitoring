@@ -301,7 +301,7 @@ export const RealTimeMonitoringView: React.FC = () => {
       </Card>
 
       {/* Live Metric Stats Cards */}
-      <div className="grid-cols-4">
+      <div className="grid-cols-5">
         <MetricCard
           label="Live CPU Utilization"
           value={metric?.cpu_percent !== null && metric?.cpu_percent !== undefined ? `${metric.cpu_percent.toFixed(1)}%` : '--'}
@@ -322,7 +322,7 @@ export const RealTimeMonitoringView: React.FC = () => {
           }
         />
         <MetricCard
-          label="Live Disk Space"
+          label="Disk Space (Capacity %)"
           value={metric?.disk_percent !== null && metric?.disk_percent !== undefined ? `${metric.disk_percent.toFixed(1)}%` : '--'}
           percentage={metric?.disk_percent}
           icon={<HardDrive size={16} />}
@@ -330,6 +330,19 @@ export const RealTimeMonitoringView: React.FC = () => {
             <span>
               {metric?.disk_used_bytes ? (metric.disk_used_bytes / (1024 ** 3)).toFixed(1) : '--'} GB /{' '}
               {metric?.disk_total_bytes ? (metric.disk_total_bytes / (1024 ** 3)).toFixed(1) : '--'} GB
+            </span>
+          }
+        />
+        <MetricCard
+          label="Disk Active Time (%)"
+          value={metric?.disk_active_percent !== null && metric?.disk_active_percent !== undefined ? `${metric.disk_active_percent.toFixed(1)}%` : 'N/A'}
+          percentage={metric?.disk_active_percent ?? undefined}
+          icon={<Activity size={16} />}
+          subtext={
+            <span>
+              {metric?.disk_read_bytes_per_sec !== null && metric?.disk_read_bytes_per_sec !== undefined
+                ? `R ${(metric.disk_read_bytes_per_sec / 1024).toFixed(0)} · W ${((metric.disk_write_bytes_per_sec ?? 0) / 1024).toFixed(0)} KB/s`
+                : 'Physical drive active time'}
             </span>
           }
         />

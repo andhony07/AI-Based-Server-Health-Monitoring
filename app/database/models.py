@@ -43,6 +43,9 @@ class SystemMetricRecord:
         disk_used_bytes: Storage used in bytes.
         disk_free_bytes: Storage free in bytes.
         disk_percent: Storage utilization percentage.
+        disk_active_percent: Physical disk busy/active time percentage (0.0 - 100.0).
+        disk_read_bytes_per_sec: Disk read throughput in bytes/sec.
+        disk_write_bytes_per_sec: Disk write throughput in bytes/sec.
         network_bytes_sent: Cumulative bytes transmitted.
         network_bytes_recv: Cumulative bytes received.
         network_bytes_sent_per_sec: Upload rate in bytes/sec.
@@ -68,6 +71,9 @@ class SystemMetricRecord:
     disk_used_bytes: Optional[int] = None
     disk_free_bytes: Optional[int] = None
     disk_percent: Optional[float] = None
+    disk_active_percent: Optional[float] = None
+    disk_read_bytes_per_sec: Optional[float] = None
+    disk_write_bytes_per_sec: Optional[float] = None
     network_bytes_sent: Optional[int] = None
     network_bytes_recv: Optional[int] = None
     network_bytes_sent_per_sec: Optional[float] = None

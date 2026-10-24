@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Final
 
-SCHEMA_VERSION: Final[int] = 1
+SCHEMA_VERSION: Final[int] = 2
 
 FEATURE_COLUMNS: Final[tuple[str, ...]] = (
     # CPU Features (6)
@@ -83,6 +83,9 @@ CREATE TABLE IF NOT EXISTS system_metrics (
     disk_used_bytes INTEGER,
     disk_free_bytes INTEGER,
     disk_percent REAL,
+    disk_active_percent REAL,
+    disk_read_bytes_per_sec REAL,
+    disk_write_bytes_per_sec REAL,
     network_bytes_sent INTEGER,
     network_bytes_recv INTEGER,
     network_bytes_sent_per_sec REAL,

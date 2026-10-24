@@ -50,6 +50,9 @@ def adapt_telemetry_to_record(
             disk_used_bytes=metric.disk.used_bytes if metric.disk is not None else None,
             disk_free_bytes=metric.disk.free_bytes if metric.disk is not None else None,
             disk_percent=metric.disk.utilization_percent if metric.disk is not None else None,
+            disk_active_percent=metric.disk.active_time_percent if metric.disk is not None else None,
+            disk_read_bytes_per_sec=metric.disk.read_bytes_per_sec if metric.disk is not None else None,
+            disk_write_bytes_per_sec=metric.disk.write_bytes_per_sec if metric.disk is not None else None,
             network_bytes_sent=metric.network.bytes_sent if metric.network is not None else None,
             network_bytes_recv=metric.network.bytes_recv if metric.network is not None else None,
             network_bytes_sent_per_sec=metric.network.bytes_sent_per_sec if metric.network is not None else None,
@@ -84,6 +87,9 @@ def adapt_telemetry_to_record(
             disk_used_bytes=metric.get("disk_used_bytes", disk_data.get("used_bytes")),
             disk_free_bytes=metric.get("disk_free_bytes", disk_data.get("free_bytes")),
             disk_percent=metric.get("disk_percent", disk_data.get("utilization_percent")),
+            disk_active_percent=metric.get("disk_active_percent", disk_data.get("active_time_percent")),
+            disk_read_bytes_per_sec=metric.get("disk_read_bytes_per_sec", disk_data.get("read_bytes_per_sec")),
+            disk_write_bytes_per_sec=metric.get("disk_write_bytes_per_sec", disk_data.get("write_bytes_per_sec")),
             network_bytes_sent=metric.get("network_bytes_sent", net_data.get("bytes_sent")),
             network_bytes_recv=metric.get("network_bytes_recv", net_data.get("bytes_recv")),
             network_bytes_sent_per_sec=metric.get("network_bytes_sent_per_sec", net_data.get("bytes_sent_per_sec")),
@@ -130,7 +136,7 @@ def render_metric_cards(
     ram_status, ram_color, ram_icon = get_resource_status(record.memory_percent, warn_thresh=85.0, crit_thresh=95.0)
     disk_status, disk_color, disk_icon = get_resource_status(record.disk_percent, warn_thresh=90.0, crit_thresh=95.0)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     with col1:
         cpu_val = format_percent(record.cpu_percent)
@@ -166,10 +172,30 @@ def render_metric_cards(
             value=disk_val,
             delta=delta_disk,
             delta_color="off",
-            help=f"Status: {disk_status}. Thresholds: Warning >90%, Critical >95%",
+            help=f"Status: {disk_status}. Storage space capacity. Thresholds: Warning >90%, Critical >95%",
         )
 
     with col4:
+        if record.disk_active_percent is not None:
+            act_val = f"{record.disk_active_percent:.1f}%"
+            r_str = f"R {format_bytes(record.disk_read_bytes_per_sec)}/s" if record.disk_read_bytes_per_sec is not None else ""
+            w_str = f"W {format_bytes(record.disk_write_bytes_per_sec)}/s" if record.disk_write_bytes_per_sec is not None else ""
+            rw_delta = f"{r_str} {w_str}".strip() or "Active"
+            act_status, _, act_icon = get_resource_status(record.disk_active_percent, warn_thresh=85.0, crit_thresh=95.0)
+        else:
+            act_val = "N/A"
+            rw_delta = "Unavailable"
+            act_status, act_icon = "Unknown", "💾"
+
+        st.metric(
+            label=f"{act_icon} Disk Active Time",
+            value=act_val,
+            delta=rw_delta,
+            delta_color="off",
+            help=f"Status: {act_status}. Percentage of measurement interval drive was active. Thresholds: Warning >85%, Critical >95%",
+        )
+
+    with col5:
         tx_kbps = (record.network_bytes_sent_per_sec / 1024.0) if record.network_bytes_sent_per_sec is not None else None
         rx_kbps = (record.network_bytes_recv_per_sec / 1024.0) if record.network_bytes_recv_per_sec is not None else None
         tx_str = format_throughput(tx_kbps)
@@ -184,7 +210,7 @@ def render_metric_cards(
             help=f"Total TX: {tx_tot} | Total RX: {rx_tot}",
         )
 
-    with col5:
+    with col6:
         proc_str = f"{record.process_count} Procs" if record.process_count is not None else "N/A Procs"
         top_name = record.top_process_name if record.top_process_name else "N/A"
         top_cpu = f"{record.top_process_cpu_percent:.1f}%" if record.top_process_cpu_percent is not None else "N/A"

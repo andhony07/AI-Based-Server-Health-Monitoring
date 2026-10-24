@@ -208,6 +208,7 @@ class DiagnosticEngine:
         cpu_pct = self._extract_float(metrics, "cpu_percent", features, "cpu_utilization_percent")
         ram_pct = self._extract_float(metrics, "memory_percent", features, "memory_utilization_percent")
         disk_pct = self._extract_float(metrics, "disk_percent", features, "disk_utilization_percent")
+        disk_active_pct = self._extract_float(metrics, "disk_active_percent", features, "disk_active_percent")
         net_tx_kbps = self._extract_net_kbps(metrics, features, is_tx=True)
         net_rx_kbps = self._extract_net_kbps(metrics, features, is_tx=False)
 
@@ -372,6 +373,40 @@ class DiagnosticEngine:
                     evidence=ev_list,
                     remediation_steps=remediation,
                     target_component="Storage Filesystem",
+                )
+            )
+
+        # ---------------------------------------------------------------------
+        # Rule 3b: Physical Disk I/O Saturation & High Active Time
+        # ---------------------------------------------------------------------
+        if disk_active_pct is not None and disk_active_pct >= 85.0:
+            is_crit = disk_active_pct >= 95.0
+            sev = EvidenceLevel.CRITICAL if is_crit else EvidenceLevel.HIGH
+            ev_list = [
+                DiagnosticEvidence(
+                    metric_name="disk_active_percent",
+                    observed_value=f"{disk_active_pct:.1f}%",
+                    threshold=">= 95.0% Critical (>= 85.0% Warning)",
+                    level=sev,
+                    description=f"Physical disk active time ({disk_active_pct:.1f}%) indicates severe disk I/O bottleneck.",
+                )
+            ]
+            remediation = [
+                "Identify high I/O processes using resource monitor or per-process I/O counters.",
+                "Check for concurrent heavy database scans, unindexed queries, or large unbuffered writes.",
+                "Consider upgrading to high-throughput SSD/NVMe or distributing I/O across separate spindles.",
+            ]
+            recommendations.append(
+                DiagnosticRecommendation(
+                    id="DIAG-DISK-002",
+                    category=DiagnosticCategory.DISK,
+                    severity=sev,
+                    title=f"{'Critical' if is_crit else 'High'} Disk I/O Saturation ({disk_active_pct:.1f}% Active)",
+                    summary=f"Physical storage drive is operating under sustained I/O bottleneck ({disk_active_pct:.1f}% busy).",
+                    root_cause_hypothesis="Excessive synchronous write bursts, heavy database queries, or concurrent disk I/O thrashing.",
+                    evidence=ev_list,
+                    remediation_steps=remediation,
+                    target_component="Physical Disk",
                 )
             )
 
@@ -582,6 +617,9 @@ class DiagnosticEngine:
                 return float(metrics.memory.utilization_percent)
             elif hasattr(metrics, "disk") and metric_attr == "disk_percent" and metrics.disk is not None:
                 return float(metrics.disk.utilization_percent)
+            elif hasattr(metrics, "disk") and metric_attr == "disk_active_percent" and metrics.disk is not None:
+                if metrics.disk.active_time_percent is not None:
+                    return float(metrics.disk.active_time_percent)
 
         if features and feat_name in features and features[feat_name] is not None:
             return float(features[feat_name])

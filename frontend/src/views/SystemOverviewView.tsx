@@ -147,8 +147,8 @@ export const SystemOverviewView: React.FC = () => {
         </div>
       )}
 
-      {/* 4 Responsive KPI Metric Cards */}
-      <div className="grid-cols-4">
+      {/* 5 Responsive KPI Metric Cards */}
+      <div className="grid-cols-5">
         <MetricCard
           label="CPU Utilization"
           value={metric?.cpu_percent !== null && metric?.cpu_percent !== undefined ? metric.cpu_percent.toFixed(1) : '--'}
@@ -173,12 +173,27 @@ export const SystemOverviewView: React.FC = () => {
         />
 
         <MetricCard
-          label="Disk Storage"
+          label="Disk Storage (Capacity)"
           value={metric?.disk_percent !== null && metric?.disk_percent !== undefined ? metric.disk_percent.toFixed(1) : '--'}
           unit="%"
           percentage={metric?.disk_percent}
           icon={<HardDrive size={16} />}
           subtext={<span>{diskUsedGb} GB / {diskTotalGb} GB</span>}
+        />
+
+        <MetricCard
+          label="Disk Active Time"
+          value={metric?.disk_active_percent !== null && metric?.disk_active_percent !== undefined ? metric.disk_active_percent.toFixed(1) : '--'}
+          unit={metric?.disk_active_percent !== null && metric?.disk_active_percent !== undefined ? "%" : undefined}
+          percentage={metric?.disk_active_percent ?? undefined}
+          icon={<Activity size={16} />}
+          subtext={
+            <span>
+              {metric?.disk_read_bytes_per_sec !== null && metric?.disk_read_bytes_per_sec !== undefined
+                ? `R ${(metric.disk_read_bytes_per_sec / (1024 * 1024)).toFixed(1)} MB/s · W ${((metric.disk_write_bytes_per_sec ?? 0) / (1024 * 1024)).toFixed(1)} MB/s`
+                : 'Physical drive busy time'}
+            </span>
+          }
         />
 
         <MetricCard

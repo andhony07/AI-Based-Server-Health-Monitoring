@@ -122,7 +122,7 @@ class TestDashboardMetricCards:
         """Regression test: render_metric_cards must accept SystemMetrics without raising AttributeError."""
         sim_metrics = simulator.generate_metrics(SimulationScenario.MEMORY_LEAK, seed=99)
 
-        cols = [mock.MagicMock() for _ in range(5)]
+        cols = [mock.MagicMock() for _ in range(6)]
         with (
             mock.patch("streamlit.columns", return_value=cols) as mock_cols,
             mock.patch("streamlit.caption") as mock_cap,
@@ -131,21 +131,21 @@ class TestDashboardMetricCards:
             # Must execute without AttributeError: 'SystemMetrics' object has no attribute 'cpu_percent'
             render_metric_cards(sim_metrics, is_simulated=True)
 
-            mock_cols.assert_called_once_with(5)
+            mock_cols.assert_called_once_with(6)
             # Verify SIMULATED label was rendered
             assert mock_cap.called
             call_text = mock_cap.call_args[0][0]
             assert "SIMULATED" in call_text
 
-            # 5 metrics rendered (CPU, RAM, Disk, Net, Procs)
-            assert mock_metric.call_count == 5
+            # 6 metrics rendered (CPU, RAM, Disk Storage, Disk Active Time, Net, Procs)
+            assert mock_metric.call_count == 6
 
     def test_render_metric_cards_with_live_telemetry_path(
         self,
         live_record: SystemMetricRecord,
     ) -> None:
         """Verify that live telemetry path (SystemMetricRecord) continues to function perfectly."""
-        cols = [mock.MagicMock() for _ in range(5)]
+        cols = [mock.MagicMock() for _ in range(6)]
         with (
             mock.patch("streamlit.columns", return_value=cols),
             mock.patch("streamlit.caption") as mock_cap,
@@ -155,7 +155,7 @@ class TestDashboardMetricCards:
 
             # Live telemetry should not display SIMULATED banner
             assert not mock_cap.called
-            assert mock_metric.call_count == 5
+            assert mock_metric.call_count == 6
 
     def test_render_metric_cards_handles_missing_optional_values_explicitly(self) -> None:
         """Verify that missing optional values display N/A without silent fabrication."""
@@ -168,14 +168,14 @@ class TestDashboardMetricCards:
             processes=[],
         )
 
-        cols = [mock.MagicMock() for _ in range(5)]
+        cols = [mock.MagicMock() for _ in range(6)]
         with (
             mock.patch("streamlit.columns", return_value=cols),
             mock.patch("streamlit.metric") as mock_metric,
         ):
             render_metric_cards(sparse_metrics, is_simulated=False)
 
-            assert mock_metric.call_count == 5
+            assert mock_metric.call_count == 6
             calls = mock_metric.call_args_list
 
             # CPU: value should be N/A, delta Cores: N/A
@@ -188,18 +188,23 @@ class TestDashboardMetricCards:
             assert ram_call.kwargs["value"] == "N/A"
             assert ram_call.kwargs["delta"] == "N/A"
 
-            # Disk: value should be N/A, delta N/A
+            # Disk Storage: value should be N/A, delta N/A
             disk_call = calls[2]
             assert disk_call.kwargs["value"] == "N/A"
             assert disk_call.kwargs["delta"] == "N/A"
 
+            # Disk Active Time: value should be N/A, delta Unavailable
+            disk_act_call = calls[3]
+            assert disk_act_call.kwargs["value"] == "N/A"
+            assert disk_act_call.kwargs["delta"] == "Unavailable"
+
             # Network: value should be TX N/A, delta RX N/A
-            net_call = calls[3]
+            net_call = calls[4]
             assert net_call.kwargs["value"] == "TX N/A"
             assert net_call.kwargs["delta"] == "RX N/A"
 
             # Processes: value should be 0 Procs, delta Top: N/A (N/A)
-            proc_call = calls[4]
+            proc_call = calls[5]
             assert proc_call.kwargs["value"] == "0 Procs"
             assert proc_call.kwargs["delta"] == "Top: N/A (N/A)"
 

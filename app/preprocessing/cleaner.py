@@ -62,6 +62,9 @@ class CleanedSystemMetrics:
     disk_total_gb: float = 0.0
     disk_used_gb: float = 0.0
     disk_free_gb: float = 0.0
+    disk_active_percent: Optional[float] = None
+    disk_read_bytes_per_sec: Optional[float] = None
+    disk_write_bytes_per_sec: Optional[float] = None
     # Network
     network_sent_bytes_per_sec: float = 0.0
     network_recv_bytes_per_sec: float = 0.0
@@ -168,16 +171,37 @@ class MetricsCleaner:
             disk_free_gb = self._sanitize_non_negative(
                 round(metrics.disk.free_bytes / (1024**3), 2)
             )
+            disk_active_percent = (
+                self._sanitize_percentage(metrics.disk.active_time_percent)
+                if metrics.disk.active_time_percent is not None
+                else None
+            )
+            disk_read_bytes_per_sec = (
+                self._sanitize_non_negative(metrics.disk.read_bytes_per_sec)
+                if metrics.disk.read_bytes_per_sec is not None
+                else None
+            )
+            disk_write_bytes_per_sec = (
+                self._sanitize_non_negative(metrics.disk.write_bytes_per_sec)
+                if metrics.disk.write_bytes_per_sec is not None
+                else None
+            )
         elif self.strategy == "last_valid" and self._last_valid_metrics is not None:
             disk_percent = self._last_valid_metrics.disk_percent
             disk_total_gb = self._last_valid_metrics.disk_total_gb
             disk_used_gb = self._last_valid_metrics.disk_used_gb
             disk_free_gb = self._last_valid_metrics.disk_free_gb
+            disk_active_percent = self._last_valid_metrics.disk_active_percent
+            disk_read_bytes_per_sec = self._last_valid_metrics.disk_read_bytes_per_sec
+            disk_write_bytes_per_sec = self._last_valid_metrics.disk_write_bytes_per_sec
         else:
             disk_percent = 0.0
             disk_total_gb = 0.0
             disk_used_gb = 0.0
             disk_free_gb = 0.0
+            disk_active_percent = None
+            disk_read_bytes_per_sec = None
+            disk_write_bytes_per_sec = None
 
         # Clean Network
         is_net_missing = 1.0 if metrics.network is None else 0.0
@@ -227,6 +251,9 @@ class MetricsCleaner:
             disk_total_gb=disk_total_gb,
             disk_used_gb=disk_used_gb,
             disk_free_gb=disk_free_gb,
+            disk_active_percent=disk_active_percent,
+            disk_read_bytes_per_sec=disk_read_bytes_per_sec,
+            disk_write_bytes_per_sec=disk_write_bytes_per_sec,
             network_sent_bytes_per_sec=net_sent_rate,
             network_recv_bytes_per_sec=net_recv_rate,
             process_count=process_count,

@@ -77,6 +77,9 @@ class MetricsRepository:
             disk_used_bytes,
             disk_free_bytes,
             disk_percent,
+            disk_active_percent,
+            disk_read_bytes_per_sec,
+            disk_write_bytes_per_sec,
             network_bytes_sent,
             network_bytes_recv,
             network_bytes_sent_per_sec,
@@ -87,7 +90,7 @@ class MetricsRepository:
             top_process_cpu_percent,
             top_process_memory_percent,
             raw_payload_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
         params = (
@@ -103,6 +106,9 @@ class MetricsRepository:
             metrics.disk.used_bytes if metrics.disk else None,
             metrics.disk.free_bytes if metrics.disk else None,
             metrics.disk.utilization_percent if metrics.disk else None,
+            metrics.disk.active_time_percent if metrics.disk else None,
+            metrics.disk.read_bytes_per_sec if metrics.disk else None,
+            metrics.disk.write_bytes_per_sec if metrics.disk else None,
             metrics.network.bytes_sent if metrics.network else None,
             metrics.network.bytes_recv if metrics.network else None,
             metrics.network.bytes_sent_per_sec if metrics.network else None,
@@ -530,6 +536,7 @@ class MetricsRepository:
             except (json.JSONDecodeError, TypeError):
                 raw_payload = {}
 
+        keys = row.keys()
         return SystemMetricRecord(
             id=int(row["id"]),
             timestamp=parse_utc_timestamp(row["timestamp"]),
@@ -544,6 +551,9 @@ class MetricsRepository:
             disk_used_bytes=row["disk_used_bytes"],
             disk_free_bytes=row["disk_free_bytes"],
             disk_percent=row["disk_percent"],
+            disk_active_percent=row["disk_active_percent"] if "disk_active_percent" in keys else None,
+            disk_read_bytes_per_sec=row["disk_read_bytes_per_sec"] if "disk_read_bytes_per_sec" in keys else None,
+            disk_write_bytes_per_sec=row["disk_write_bytes_per_sec"] if "disk_write_bytes_per_sec" in keys else None,
             network_bytes_sent=row["network_bytes_sent"],
             network_bytes_recv=row["network_bytes_recv"],
             network_bytes_sent_per_sec=row["network_bytes_sent_per_sec"],

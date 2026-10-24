@@ -6,31 +6,44 @@ and skips inaccessible volumes gracefully.
 """
 
 from __future__ import annotations
+from typing import Optional
 
 import psutil
 
 from app.collectors.base import BaseCollector
+from app.collectors.disk_activity import (
+    BaseDiskActivityProvider,
+    create_default_disk_activity_provider,
+)
 from app.models.metrics import DiskMetrics, DiskPartitionMetrics
 
 
 class DiskCollector(BaseCollector[DiskMetrics]):
-    """Collector for local filesystem storage capacity and utilization."""
+    """Collector for local filesystem storage capacity, utilization, and disk active time."""
 
-    def __init__(self, include_all: bool = False) -> None:
+    def __init__(
+        self,
+        include_all: bool = False,
+        activity_provider: Optional[BaseDiskActivityProvider] = None,
+    ) -> None:
         """Initialize the Disk collector.
 
         Args:
             include_all: Whether to inspect all virtual/virtualized partitions
                 or only physical devices (defaults to False for physical only).
+            activity_provider: Optional custom disk activity provider for testing or alternative platforms.
         """
         super().__init__(name="disk")
         self.include_all = include_all
+        self.activity_provider: BaseDiskActivityProvider = (
+            activity_provider or create_default_disk_activity_provider()
+        )
 
     def collect(self) -> DiskMetrics:
-        """Harvest disk partition usage metrics across accessible local drives.
+        """Harvest disk partition usage metrics and physical disk active time.
 
         Returns:
-            DiskMetrics containing individual partition metrics and aggregated totals.
+            DiskMetrics containing partition metrics, aggregate storage, and disk active time.
 
         Raises:
             RuntimeError: If partition enumeration completely fails.
@@ -83,10 +96,20 @@ class DiskCollector(BaseCollector[DiskMetrics]):
             else 0.0
         )
 
+        # Harvest physical disk activity and throughput
+        activity = self.activity_provider.get_activity()
+
         return DiskMetrics(
             partitions=partition_metrics,
             total_bytes=total_bytes,
             used_bytes=used_bytes,
             free_bytes=free_bytes,
             utilization_percent=agg_percent,
+            active_time_percent=activity.active_time_percent,
+            read_bytes_per_sec=activity.read_bytes_per_sec,
+            write_bytes_per_sec=activity.write_bytes_per_sec,
         )
+
+    def close(self) -> None:
+        """Release underlying query handles in the activity provider."""
+        self.activity_provider.close()

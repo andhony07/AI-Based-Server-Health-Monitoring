@@ -188,7 +188,19 @@ def build_resource_breakdown_bar(
         elif hasattr(metric, "disk") and metric.disk is not None:
             disk_pct = getattr(metric.disk, "utilization_percent", 0.0) or 0.0
 
-    values = [cpu_pct, mem_pct, disk_pct]
+    disk_active_pct = None
+    if metric is not None:
+        if hasattr(metric, "disk_active_percent") and metric.disk_active_percent is not None:
+            disk_active_pct = metric.disk_active_percent
+        elif hasattr(metric, "disk") and metric.disk is not None and getattr(metric.disk, "active_time_percent", None) is not None:
+            disk_active_pct = metric.disk.active_time_percent
+
+    if disk_active_pct is not None:
+        labels = ["CPU", "Memory (RAM)", "Disk Storage", "Disk Active"]
+        values = [cpu_pct, mem_pct, disk_pct, disk_active_pct]
+    else:
+        labels = ["CPU", "Memory (RAM)", "Disk Storage"]
+        values = [cpu_pct, mem_pct, disk_pct]
 
     colors = []
     for v in values:
@@ -281,6 +293,7 @@ def build_multi_metric_timeseries(
         "CPU Utilization (%)": "#38BDF8" if tokens.mode == "dark" else "#2563EB",
         "RAM Utilization (%)": "#A855F7" if tokens.mode == "dark" else "#7C3AED",
         "Disk Utilization (%)": "#10B981",
+        "Disk Active Time (%)": "#F59E0B" if tokens.mode == "dark" else "#D97706",
         "Network TX (KB/s)": "#F59E0B",
         "Network RX (KB/s)": "#EC4899",
         "Active Processes": "#94A3B8" if tokens.mode == "dark" else "#64748B",
@@ -321,9 +334,22 @@ def build_multi_metric_timeseries(
                 x=timestamps,
                 y=disks,
                 mode="lines",
-                name="Disk (%)",
+                name="Disk Space (%)",
                 line=dict(color=colors["Disk Utilization (%)"], width=2, dash="dash"),
-                hovertemplate="%{x|%Y-%m-%d %H:%M:%S}<br>Disk: %{y:.1f}%<extra></extra>",
+                hovertemplate="%{x|%Y-%m-%d %H:%M:%S}<br>Disk Space: %{y:.1f}%<extra></extra>",
+            )
+        )
+
+    if "Disk Active Time (%)" in metrics_to_plot:
+        acts = [r.disk_active_percent if r.disk_active_percent is not None else 0.0 for r in records]
+        fig.add_trace(
+            go.Scatter(
+                x=timestamps,
+                y=acts,
+                mode="lines",
+                name="Disk Active (%)",
+                line=dict(color=colors["Disk Active Time (%)"], width=2),
+                hovertemplate="%{x|%Y-%m-%d %H:%M:%S}<br>Disk Active: %{y:.1f}%<extra></extra>",
             )
         )
 

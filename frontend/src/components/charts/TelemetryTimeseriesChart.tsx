@@ -39,6 +39,9 @@ export const TelemetryTimeseriesChart: React.FC<TelemetryTimeseriesChartProps> =
         cpu: record.cpu_percent !== null ? Number(record.cpu_percent.toFixed(1)) : 0,
         memory: record.memory_percent !== null ? Number(record.memory_percent.toFixed(1)) : 0,
         disk: record.disk_percent !== null ? Number(record.disk_percent.toFixed(1)) : 0,
+        diskActive: record.disk_active_percent !== null && record.disk_active_percent !== undefined
+          ? Number(record.disk_active_percent.toFixed(1))
+          : null,
       };
     });
   }, [data]);
@@ -121,16 +124,30 @@ export const TelemetryTimeseriesChart: React.FC<TelemetryTimeseriesChartProps> =
             isAnimationActive={false}
           />
           {showDisk && (
-            <Line
-              type="monotone"
-              dataKey="disk"
-              name="Disk Storage"
-              stroke="#10B981"
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, stroke: '#10B981', strokeWidth: 2, fill: '#0B0F19' }}
-              isAnimationActive={false}
-            />
+            <>
+              <Line
+                type="monotone"
+                dataKey="disk"
+                name="Disk Storage"
+                stroke="#10B981"
+                strokeWidth={2}
+                dot={false}
+                strokeDasharray="4 4"
+                activeDot={{ r: 4, stroke: '#10B981', strokeWidth: 2, fill: '#0B0F19' }}
+                isAnimationActive={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="diskActive"
+                name="Disk Active Time"
+                stroke="#F59E0B"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: '#F59E0B', strokeWidth: 2, fill: '#0B0F19' }}
+                isAnimationActive={false}
+                connectNulls={true}
+              />
+            </>
           )}
         </LineChart>
       </ResponsiveContainer>

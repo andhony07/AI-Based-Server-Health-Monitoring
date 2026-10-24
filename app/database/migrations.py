@@ -62,9 +62,23 @@ def _migration_v1(conn: sqlite3.Connection) -> None:
         conn.execute(index_stmt)
 
 
+def _migration_v2(conn: sqlite3.Connection) -> None:
+    """Apply version 2 migration: add disk active percent and I/O throughput columns to system_metrics."""
+    cursor = conn.execute("PRAGMA table_info(system_metrics);")
+    existing_cols = {row["name"] for row in cursor.fetchall()}
+
+    if "disk_active_percent" not in existing_cols:
+        conn.execute("ALTER TABLE system_metrics ADD COLUMN disk_active_percent REAL;")
+    if "disk_read_bytes_per_sec" not in existing_cols:
+        conn.execute("ALTER TABLE system_metrics ADD COLUMN disk_read_bytes_per_sec REAL;")
+    if "disk_write_bytes_per_sec" not in existing_cols:
+        conn.execute("ALTER TABLE system_metrics ADD COLUMN disk_write_bytes_per_sec REAL;")
+
+
 # Ordered registry of schema migration actions
 MIGRATIONS: Final[dict[int, tuple[str, Callable[[sqlite3.Connection], None]]]] = {
     1: ("Initial telemetry, feature vectors, and validation audit tables", _migration_v1),
+    2: ("Add disk active percent and disk read/write throughput columns", _migration_v2),
 }
 
 

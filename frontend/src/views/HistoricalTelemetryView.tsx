@@ -248,7 +248,8 @@ export const HistoricalTelemetryView: React.FC = () => {
                   <th>Cores</th>
                   <th>Memory %</th>
                   <th>Memory Used</th>
-                  <th>Disk %</th>
+                  <th>Disk Space %</th>
+                  <th>Disk Active %</th>
                   <th>Disk Used</th>
                   <th>Net Upload</th>
                   <th>Net Download</th>
@@ -284,6 +285,9 @@ export const HistoricalTelemetryView: React.FC = () => {
                       </td>
                       <td>{memUsedGb}</td>
                       <td>{r.disk_percent !== null ? `${r.disk_percent.toFixed(1)}%` : '--'}</td>
+                      <td style={{ fontWeight: 600, color: (r.disk_active_percent ?? 0) >= 85 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
+                        {r.disk_active_percent !== null && r.disk_active_percent !== undefined ? `${r.disk_active_percent.toFixed(1)}%` : '--'}
+                      </td>
                       <td>{diskUsedGb}</td>
                       <td>{uploadSec}</td>
                       <td>{downloadSec}</td>

@@ -67,6 +67,9 @@ export interface SystemMetricRecord {
   disk_used_bytes: number | null;
   disk_free_bytes: number | null;
   disk_percent: number | null;
+  disk_active_percent?: number | null;
+  disk_read_bytes_per_sec?: number | null;
+  disk_write_bytes_per_sec?: number | null;
   network_bytes_sent: number | null;
   network_bytes_recv: number | null;
   network_bytes_sent_per_sec: number | null;

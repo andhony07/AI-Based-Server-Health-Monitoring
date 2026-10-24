@@ -120,6 +120,9 @@ class DiskMetrics:
     used_bytes: int = 0
     free_bytes: int = 0
     utilization_percent: float = 0.0
+    active_time_percent: Optional[float] = None
+    read_bytes_per_sec: Optional[float] = None
+    write_bytes_per_sec: Optional[float] = None
 
 
 @dataclass(frozen=True)

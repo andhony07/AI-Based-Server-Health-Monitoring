@@ -293,10 +293,36 @@ class MetricsValidator:
     def _validate_disk(
         self, disk: DiskMetrics, issues: list[ValidationIssue]
     ) -> None:
-        """Validate disk storage metrics."""
+        """Validate disk storage and activity metrics."""
         self._check_float_range(
             "disk", "utilization_percent", disk.utilization_percent, 0.0, 100.0, issues
         )
+        if disk.active_time_percent is not None:
+            self._check_float_range(
+                "disk", "active_time_percent", disk.active_time_percent, 0.0, 100.0, issues
+            )
+        if disk.read_bytes_per_sec is not None and disk.read_bytes_per_sec < 0:
+            issues.append(
+                ValidationIssue(
+                    domain="disk",
+                    field_name="read_bytes_per_sec",
+                    issue_type="out_of_range",
+                    message=f"Disk read bytes per second cannot be negative, got: {disk.read_bytes_per_sec}",
+                    value=disk.read_bytes_per_sec,
+                    severity="warning",
+                )
+            )
+        if disk.write_bytes_per_sec is not None and disk.write_bytes_per_sec < 0:
+            issues.append(
+                ValidationIssue(
+                    domain="disk",
+                    field_name="write_bytes_per_sec",
+                    issue_type="out_of_range",
+                    message=f"Disk write bytes per second cannot be negative, got: {disk.write_bytes_per_sec}",
+                    value=disk.write_bytes_per_sec,
+                    severity="warning",
+                )
+            )
         if disk.total_bytes < 0 or disk.used_bytes < 0 or disk.free_bytes < 0:
             issues.append(
                 ValidationIssue(

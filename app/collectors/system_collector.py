@@ -200,3 +200,8 @@ class SystemCollector(BaseCollector[SystemMetrics]):
     def stop(self) -> None:
         """Signal the periodic collection loop to cleanly shut down."""
         self._stop_event.set()
+        if hasattr(self, "disk_collector") and hasattr(self.disk_collector, "close"):
+            try:
+                self.disk_collector.close()
+            except Exception:
+                pass

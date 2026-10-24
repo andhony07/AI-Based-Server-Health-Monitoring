@@ -84,6 +84,9 @@ class SystemMetricRecordSchema(BaseModel):
     disk_used_bytes: Optional[int] = None
     disk_free_bytes: Optional[int] = None
     disk_percent: Optional[float] = None
+    disk_active_percent: Optional[float] = None
+    disk_read_bytes_per_sec: Optional[float] = None
+    disk_write_bytes_per_sec: Optional[float] = None
     network_bytes_sent: Optional[int] = None
     network_bytes_recv: Optional[int] = None
     network_bytes_sent_per_sec: Optional[float] = None
